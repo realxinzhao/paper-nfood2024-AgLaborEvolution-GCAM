@@ -62,6 +62,7 @@
 #include "technologies/include/pass_through_technology.h"
 #include "technologies/include/unmanaged_land_technology.h"
 #include "technologies/include/resource_reserve_technology.h"
+#include "technologies/include/food_storage_technology.h"
 #include "technologies/include/empty_technology.h"
 
 extern Scenario* scenario;
@@ -133,6 +134,7 @@ bool TechnologyContainer::hasTechnologyType( const string& aTechNodeName ) {
              aTechNodeName == TranTechnology::getXMLNameStatic() ||
              aTechNodeName == AgProductionTechnology::getXMLNameStatic() ||
              aTechNodeName == PassThroughTechnology::getXMLNameStatic() ||
+             aTechNodeName == FoodStorageTechnology::getXMLNameStatic() ||
              aTechNodeName == UnmanagedLandTechnology::getXMLNameStatic() ||
              aTechNodeName == ResourceReserveTechnology::getXMLNameStatic() );
 }
@@ -145,6 +147,80 @@ bool TechnologyContainer::XMLParse( rapidxml::xml_node<char>* & aNode) {
         using value_type = ITechnology*;
         using data_type = ITechnology;
         using FactoryType = Factory<ITechnology::SubClassFamilyVector>;
+}
+
+/*!
+ * \brief Create and parse a vintage of a technology from the given XML and of the given
+ *        type.
+ * \details Creates a new vintage in the year determined by the year attribute of
+ *          aNode if one does not already exist for that year.  That vintage will
+ *          then have XMLParse called on it.
+ * \param aNode The XML which defines the vintage including year.
+ * \param aTechType The type of technology which would need to be created.
+ * \return Whether the creation and parsing of the vintage was successful.
+ * \note The types of technologies that may be created should be kept in sync with
+ *       TechnologyContainer::hasTechnologyType
+ */
+bool TechnologyContainer::createAndParseVintage( const DOMNode* aNode, const string& aTechType ) {
+    /*! \pre Tech type should be known. */
+    assert( hasTechnologyType( aTechType ) );
+    
+    ITechnology* newVintage = 0;
+    
+    const int techYear = XMLHelper<int>::getAttr( aNode, "year" );
+    if( techYear == 0 ) {
+        ILogger& mainLog = ILogger::getLogger( "main_log" );
+        mainLog.setLevel( ILogger::ERROR );
+        mainLog << "Could not determine year for technology " << mName << " while parsing " << aTechType << endl;
+        return false;
+    }
+    
+    // check if this vintage has already been created
+    VintageIterator vintageIt = mVintages.find( techYear );
+    if( vintageIt == mVintages.end() ) {
+        // has not been added yet so we must create a new one
+        if( aTechType == DefaultTechnology::getXMLNameStatic() ) {
+            newVintage = new DefaultTechnology( mName, techYear );
+        }
+        else if( aTechType == IntermittentTechnology::getXMLNameStatic() ) {
+            newVintage = new IntermittentTechnology( mName, techYear );
+        }
+        else if( aTechType == WindTechnology::getXMLNameStatic() ) {
+            newVintage = new WindTechnology( mName, techYear );
+        }
+        else if( aTechType == SolarTechnology::getXMLNameStatic() ) {
+            newVintage = new SolarTechnology( mName, techYear );
+        }
+        else if( aTechType == NukeFuelTechnology::getXMLNameStatic() ) {
+            newVintage = new NukeFuelTechnology( mName, techYear );
+        }
+        else if( aTechType == TranTechnology::getXMLNameStatic() ) {
+            newVintage = new TranTechnology( mName, techYear );
+        }
+        else if( aTechType == AgProductionTechnology::getXMLNameStatic() ) {
+            newVintage = new AgProductionTechnology( mName, techYear );
+        }
+        else if( aTechType == PassThroughTechnology::getXMLNameStatic() ) {
+            newVintage = new PassThroughTechnology( mName, techYear );
+        }
+        else if (aTechType == FoodStorageTechnology::getXMLNameStatic()) {
+            newVintage = new FoodStorageTechnology(mName, techYear);
+        }
+        else if( aTechType == UnmanagedLandTechnology::getXMLNameStatic() ) {
+            newVintage = new UnmanagedLandTechnology( mName, techYear );
+        }
+        else if( aTechType == ResourceReserveTechnology::getXMLNameStatic() ) {
+            newVintage = new ResourceReserveTechnology( mName, techYear );
+        }
+        else {
+            // Getting an error message here implies that the known technologies in this method are
+            // out of sync with hasTechnologyType.
+            ILogger& mainLog = ILogger::getLogger( "main_log" );
+            mainLog.setLevel( ILogger::ERROR );
+            mainLog << "Could not determine a technology of type" << aTechType << endl;
+            return false;
+        }
+>>>>>>> 94f4ccc27 (Updates for food storage technology)
         
         //string nodeName(aNode->name(), aNode->name_size());
         map<string, string> attrs = XMLParseHelper::getAllAttrs(aNode);
