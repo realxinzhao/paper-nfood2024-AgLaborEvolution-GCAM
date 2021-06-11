@@ -97,8 +97,6 @@ void FoodStorageTechnology::completeInit(const string& aRegionName,
     // The FoodStorageTechnology should not have any vintaging.  All vintaging should be
     // in the associated pass-through sector
     // check if lifetime years covers 2 periods
-    // TODO: check if lifetime years covers exactly 2 period
-
     const Modeltime* modeltime = scenario->getModeltime();
     
     if (mYear < modeltime->getEndYear()) {
@@ -159,7 +157,7 @@ void FoodStorageTechnology::production(const string& aRegionName,
         mOutputs[1]->scaleCoefficient(0); //pass in 0, turn off secondary output if first year
         Technology::production(aRegionName, aSectorName, aVariableDemand, 1, aGDP, aPeriod);
     }
-    else {
+    else if(mProductionState[aPeriod]->isOperating()){
         mOutputs[1]->scaleCoefficient(1);
         double totalStoredAmount = mCarriedForwardValue;
         //can never be in period 0
@@ -175,6 +173,9 @@ bool FoodStorageTechnology::XMLDerivedClassParse( const string& aNodeName, const
     if (aNodeName == "carried-forward") {
         mCarriedForwardValue = XMLHelper<Value>::getValue(aNode);
         return true;
+    }
+    else if (aNodeName == "initial-stock") {
+        mInitialStock = XMLHelper<Value>::getValue(aNode);
     }
     return false;
 }

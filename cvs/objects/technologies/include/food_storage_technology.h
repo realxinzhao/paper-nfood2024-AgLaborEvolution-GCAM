@@ -112,7 +112,9 @@ protected:
         //! Amount carried forward from one model period to the next 
         DEFINE_VARIABLE( SIMPLE, "carried-forward", mCarriedForwardValue, Value ),
         // Expected price of food crop
-        DEFINE_VARIABLE(SIMPLE, "expected-price", mExpectedPrice, Value)
+        DEFINE_VARIABLE(SIMPLE, "expected-price", mExpectedPrice, Value),
+        //initial amount of crop in storage
+        DEFINE_VARIABLE(SIMPLE, "initial-stock", mInitialStock, Value)
     )
     
     void copy( const FoodStorageTechnology& aOther );
