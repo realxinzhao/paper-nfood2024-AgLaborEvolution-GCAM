@@ -50,6 +50,8 @@
 #include "containers/include/market_dependency_finder.h"
 #include "technologies/include/iproduction_state.h"
 #include "technologies/include/ioutput.h"
+#include "technologies/include/production_state_factory.h"
+
 
 using namespace std;
 using namespace xercesc;
@@ -113,15 +115,48 @@ void FoodStorageTechnology::completeInit(const string& aRegionName,
     }
 }
 
-double FoodStorageTechnology::getFixedOutput(const string& aRegionName,
+/*double FoodStorageTechnology::getFixedOutput(const string& aRegionName,
     const string& aSectorName,
     const bool aHasRequiredInput,
     const string& aRequiredInput,
     const double aMarginalRevenue,
     const int aPeriod) const
 {
-    return 0;
+    if (mProductionState[aPeriod]->isOperating() && !mProductionState[aPeriod]->isNewInvestment()) {
+        //mInputs[0]->setCoefficient(1, aPeriod);
+        double totalStoredAmount = mCarriedForwardValue;
+        //can never be in period 0
+        totalStoredAmount += mStoredValue;
+        double storedAmounttoUse = 0.75; //TODO: calculate based off price   
+        return totalStoredAmount * storedAmounttoUse;
+    }
+    else {
+        return 0;
+    }
+}*/
+
+void FoodStorageTechnology::setProductionState(const int aPeriod) {
+    // Check that the state for this period has not already been initialized.
+    // Note that this is the case when the same scenario is run multiple times
+    // for instance when doing the policy cost calculation.  In which case
+    // we must delete the memory to avoid a memory leak.
+    if (mProductionState[aPeriod]) {
+        delete mProductionState[aPeriod];
+    }
+
+    double initialOutput = 0;
+    const Modeltime* modeltime = scenario->getModeltime();
+    double totalStoredAmount = mCarriedForwardValue;
+    //can never be in period 0
+    totalStoredAmount += mStoredValue;
+    double storedAmounttoUse = 0.75; //TODO: calculate based off price   
+    initialOutput = totalStoredAmount * storedAmounttoUse;
+
+    mProductionState[aPeriod] =
+        ProductionStateFactory::create(mYear, mLifetimeYears, mFixedOutput,
+            initialOutput, aPeriod).release();
 }
+
 
 // TODO:do loss calculation
 void FoodStorageTechnology::initCalc(const string& aRegionName,
@@ -141,11 +176,6 @@ void FoodStorageTechnology::initCalc(const string& aRegionName,
     }
 }
 
-double FoodStorageTechnology::getCost(const int aPeriod) const
-{
-    return mExpectedPrice;
-}
-
 void FoodStorageTechnology::production(const string& aRegionName,
     const string& aSectorName,
     double aVariableDemand,
@@ -154,19 +184,17 @@ void FoodStorageTechnology::production(const string& aRegionName,
     const int aPeriod)
 {
     if (mProductionState[aPeriod]->isNewInvestment()) {
-        mOutputs[1]->scaleCoefficient(0); //pass in 0, turn off secondary output if first year
-        Technology::production(aRegionName, aSectorName, aVariableDemand, 1, aGDP, aPeriod);
+        mStoredValue = mShareWeight * (pow(mExpectedPrice / mInputs[0]->getPrice(aRegionName, aPeriod), mLogitExponent))*aVariableDemand;
+        double total = mStoredValue + aVariableDemand;
+        double totalToVariableRatio = total / aVariableDemand;
+        mInputs[0]->setCoefficient(totalToVariableRatio, aPeriod);
     }
     else if(mProductionState[aPeriod]->isOperating()){
-        mOutputs[1]->scaleCoefficient(1);
-        double totalStoredAmount = mCarriedForwardValue;
-        //can never be in period 0
-        totalStoredAmount += mOutputs[0]->getPhysicalOutput(aPeriod - 1);
-        double storedAmounttoUse = 0.75; //TODO: calculate based off price   
-        mOutputs[1]->setPhysicalOutput(totalStoredAmount * storedAmounttoUse, aRegionName, mCaptureComponent, aPeriod);
+        mInputs[0]->setCoefficient(0, aPeriod);
     }
-
+    Technology::production(aRegionName, aSectorName, aVariableDemand, aFixedOutputScaleFactor, aGDP, aPeriod);
 }
+
 
 
 bool FoodStorageTechnology::XMLDerivedClassParse( const string& aNodeName, const DOMNode* aNode ) {
@@ -176,12 +204,18 @@ bool FoodStorageTechnology::XMLDerivedClassParse( const string& aNodeName, const
     }
     else if (aNodeName == "initial-stock") {
         mInitialStock = XMLHelper<Value>::getValue(aNode);
+        return true;
+    }
+    else if (aNodeName == "logit-exponent") {
+        mLogitExponent = XMLHelper<Value>::getValue(aNode);
+        return true;
     }
     return false;
 }
 
 //! write object to xml output stream
 void FoodStorageTechnology::toDebugXMLDerived( const int aPeriod, ostream& aOut, Tabs* aTabs ) const {
-    
+    XMLWriteElement(mStoredValue, "stored-value", aOut, aTabs);
+    XMLWriteElement(mExpectedPrice, "expected-price", aOut, aTabs);
 }
 

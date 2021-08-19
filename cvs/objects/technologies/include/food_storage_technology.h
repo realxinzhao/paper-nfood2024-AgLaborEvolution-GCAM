@@ -83,14 +83,12 @@ public:
         PreviousPeriodInfo& aPrevPeriodInfo,
         const int aPeriod);
 
-    virtual double getFixedOutput(const std::string& aRegionName,
+    /*virtual double getFixedOutput(const std::string& aRegionName,
         const std::string& aSectorName,
         const bool aHasRequiredInput,
         const std::string& aRequiredInput,
         const double aMarginalRevenue,
-        const int aPeriod) const;
-
-    virtual double getCost(const int aPeriod) const;
+        const int aPeriod) const;*/
 
     virtual void production( const std::string& aRegionName,
                              const std::string& aSectorName,
@@ -114,10 +112,16 @@ protected:
         // Expected price of food crop
         DEFINE_VARIABLE(SIMPLE, "expected-price", mExpectedPrice, Value),
         //initial amount of crop in storage
-        DEFINE_VARIABLE(SIMPLE, "initial-stock", mInitialStock, Value)
+        DEFINE_VARIABLE(SIMPLE, "initial-stock", mInitialStock, Value),
+        //
+        DEFINE_VARIABLE(SIMPLE, "stored-value", mStoredValue, Value),
+        //
+        DEFINE_VARIABLE(SIMPLE, "logit-exponent", mLogitExponent, Value)
     )
     
     void copy( const FoodStorageTechnology& aOther );
+    virtual void setProductionState(const int aPeriod);
+
 };
 
 #endif // _FOOD_STORAGE_TECHNOLOGY_H_
