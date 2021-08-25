@@ -104,36 +104,8 @@ void FoodStorageTechnology::completeInit(const string& aRegionName,
     if (mYear < modeltime->getEndYear()) {
         const int period = modeltime->getyr_to_per(mYear);
         int expectedLifetime = modeltime->gettimestep(period) + modeltime->gettimestep(period + 1);
-
-        if (mLifetimeYears != expectedLifetime) {
-            ILogger& mainLog = ILogger::getLogger("main_log");
-            mainLog.setLevel(ILogger::WARNING);
-            mainLog << "Invalid lifetime " << mLifetimeYears << " Expecting lifetime " << expectedLifetime
-                << getXMLNameStatic() << " " << mName << " in year " << mYear << "." << endl;
-            abort();
-        }
     }
 }
-
-/*double FoodStorageTechnology::getFixedOutput(const string& aRegionName,
-    const string& aSectorName,
-    const bool aHasRequiredInput,
-    const string& aRequiredInput,
-    const double aMarginalRevenue,
-    const int aPeriod) const
-{
-    if (mProductionState[aPeriod]->isOperating() && !mProductionState[aPeriod]->isNewInvestment()) {
-        //mInputs[0]->setCoefficient(1, aPeriod);
-        double totalStoredAmount = mCarriedForwardValue;
-        //can never be in period 0
-        totalStoredAmount += mStoredValue;
-        double storedAmounttoUse = 0.75; //TODO: calculate based off price   
-        return totalStoredAmount * storedAmounttoUse;
-    }
-    else {
-        return 0;
-    }
-}*/
 
 void FoodStorageTechnology::setProductionState(const int aPeriod) {
     // Check that the state for this period has not already been initialized.
@@ -146,11 +118,13 @@ void FoodStorageTechnology::setProductionState(const int aPeriod) {
 
     double initialOutput = 0;
     const Modeltime* modeltime = scenario->getModeltime();
-    double totalStoredAmount = mCarriedForwardValue;
-    //can never be in period 0
-    totalStoredAmount += mStoredValue;
-    double storedAmounttoUse = 0.75; //TODO: calculate based off price   
-    initialOutput = totalStoredAmount * storedAmounttoUse;
+
+    if (aPeriod <= modeltime->getFinalCalibrationPeriod()) {
+        initialOutput = mCarriedForwardValue;
+    }
+    else {
+        initialOutput = mStoredValue * 0.75; //lose 25%
+    }
 
     mProductionState[aPeriod] =
         ProductionStateFactory::create(mYear, mLifetimeYears, mFixedOutput,
@@ -158,7 +132,6 @@ void FoodStorageTechnology::setProductionState(const int aPeriod) {
 }
 
 
-// TODO:do loss calculation
 void FoodStorageTechnology::initCalc(const string& aRegionName,
     const string& aSectorName,
     const IInfo* aSubsectorInfo,
@@ -184,6 +157,13 @@ void FoodStorageTechnology::production(const string& aRegionName,
     const int aPeriod)
 {
     if (mProductionState[aPeriod]->isNewInvestment()) {
+
+        const Modeltime* modeltime = scenario->getModeltime();
+
+        if (aPeriod <= modeltime->getFinalCalibrationPeriod()) {
+            mShareWeight = mInitialStock / ((pow(mExpectedPrice / mInputs[0]->getPrice(aRegionName, aPeriod), mLogitExponent)) * aVariableDemand);
+        }
+
         mStoredValue = mShareWeight * (pow(mExpectedPrice / mInputs[0]->getPrice(aRegionName, aPeriod), mLogitExponent))*aVariableDemand;
         double total = mStoredValue + aVariableDemand;
         double totalToVariableRatio = total / aVariableDemand;
@@ -198,11 +178,11 @@ void FoodStorageTechnology::production(const string& aRegionName,
 
 
 bool FoodStorageTechnology::XMLDerivedClassParse( const string& aNodeName, const DOMNode* aNode ) {
-    if (aNodeName == "carried-forward") {
+    if (aNodeName == "carried-forward") { //what you get from previous period
         mCarriedForwardValue = XMLHelper<Value>::getValue(aNode);
         return true;
     }
-    else if (aNodeName == "initial-stock") {
+    else if (aNodeName == "initial-stock") { //calibrated value from that period
         mInitialStock = XMLHelper<Value>::getValue(aNode);
         return true;
     }
