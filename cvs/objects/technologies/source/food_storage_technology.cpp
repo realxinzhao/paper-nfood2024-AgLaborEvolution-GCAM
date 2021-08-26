@@ -75,6 +75,8 @@ FoodStorageTechnology* FoodStorageTechnology::clone() const {
 void FoodStorageTechnology::copy( const FoodStorageTechnology& aOther ) {
     Technology::copy( aOther );
     
+    mLogitExponent = aOther.mLogitExponent;
+    mLossCoefficient = aOther.mLossCoefficient;
 }
 
 const string& FoodStorageTechnology::getXMLNameStatic() {
@@ -98,13 +100,24 @@ void FoodStorageTechnology::completeInit(const string& aRegionName,
 
     // The FoodStorageTechnology should not have any vintaging.  All vintaging should be
     // in the associated pass-through sector
-    // check if lifetime years covers 2 periods
     const Modeltime* modeltime = scenario->getModeltime();
     
     if (mYear < modeltime->getEndYear()) {
         const int period = modeltime->getyr_to_per(mYear);
-        int expectedLifetime = modeltime->gettimestep(period) + modeltime->gettimestep(period + 1);
+        int minLifetime = modeltime->gettimestep(period + 1); //check this
+        int maxLifetime = modeltime->gettimestep(period + 1) + modeltime->gettimestep(period + 2); //check this
+                 
+        // check if lifetime years covers 2 periods
+        /*if (mLifetimeYears < minLifetime || mLifetimeYears > maxLifetime) {
+            ILogger& mainLog = ILogger::getLogger("main_log");
+            mainLog.setLevel(ILogger::WARNING);
+            mainLog << "Invalid lifetime " << mLifetimeYears << " for " << mName << " in year " << mYear << "." << endl;
+            abort();
+        }*/
+        //Need to deal second to last model period
+    
     }
+
 }
 
 void FoodStorageTechnology::setProductionState(const int aPeriod) {
@@ -123,7 +136,7 @@ void FoodStorageTechnology::setProductionState(const int aPeriod) {
         initialOutput = mCarriedForwardValue;
     }
     else {
-        initialOutput = mStoredValue * 0.75; //lose 25%
+        initialOutput = mStoredValue * mLossCoefficient; 
     }
 
     mProductionState[aPeriod] =
@@ -188,6 +201,10 @@ bool FoodStorageTechnology::XMLDerivedClassParse( const string& aNodeName, const
     }
     else if (aNodeName == "logit-exponent") {
         mLogitExponent = XMLHelper<Value>::getValue(aNode);
+        return true;
+    }
+    else if (aNodeName == "loss-coefficient") {
+        mLossCoefficient = XMLHelper<Value>::getValue(aNode);
         return true;
     }
     return false;

@@ -110,7 +110,9 @@ protected:
         //
         DEFINE_VARIABLE(SIMPLE | STATE, "stored-value", mStoredValue, Value),
         //
-        DEFINE_VARIABLE(SIMPLE, "logit-exponent", mLogitExponent, Value)
+        DEFINE_VARIABLE(SIMPLE, "logit-exponent", mLogitExponent, Value), 
+        //
+        DEFINE_VARIABLE(SIMPLE, "loss-coefficient", mLossCoefficient, Value)
     )
     
     void copy( const FoodStorageTechnology& aOther );
