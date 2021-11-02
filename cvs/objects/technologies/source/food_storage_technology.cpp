@@ -51,6 +51,7 @@
 #include "technologies/include/iproduction_state.h"
 #include "technologies/include/ioutput.h"
 #include "technologies/include/production_state_factory.h"
+#include "technologies/include/marginal_profit_calculator.h"
 
 
 using namespace std;
@@ -106,16 +107,7 @@ void FoodStorageTechnology::completeInit(const string& aRegionName,
         const int period = modeltime->getyr_to_per(mYear);
         int minLifetime = modeltime->gettimestep(period + 1); //check this
         int maxLifetime = modeltime->gettimestep(period + 1) + modeltime->gettimestep(period + 2); //check this
-                 
-        // check if lifetime years covers 2 periods
-        /*if (mLifetimeYears < minLifetime || mLifetimeYears > maxLifetime) {
-            ILogger& mainLog = ILogger::getLogger("main_log");
-            mainLog.setLevel(ILogger::WARNING);
-            mainLog << "Invalid lifetime " << mLifetimeYears << " for " << mName << " in year " << mYear << "." << endl;
-            abort();
-        }*/
-        //Need to deal second to last model period
-    
+  
     }
 
 }
@@ -162,6 +154,16 @@ void FoodStorageTechnology::initCalc(const string& aRegionName,
     }
 }
 
+double FoodStorageTechnology::getFixedOutput(const string& aRegionName,
+    const string& aSectorName,
+    const bool aHasRequiredInput,
+    const string& aRequiredInput,
+    const double aMarginalRevenue,
+    const int aPeriod) const
+{
+    return 0;
+}
+
 void FoodStorageTechnology::production(const string& aRegionName,
     const string& aSectorName,
     double aVariableDemand,
@@ -169,23 +171,59 @@ void FoodStorageTechnology::production(const string& aRegionName,
     const GDP* aGDP,
     const int aPeriod)
 {
+    int OutputPosition;
+    
     if (mProductionState[aPeriod]->isNewInvestment()) {
 
-        const Modeltime* modeltime = scenario->getModeltime();
+        OutputPosition = 0;
 
-        if (aPeriod <= modeltime->getFinalCalibrationPeriod()) {
-            mShareWeight = mInitialStock / ((pow(mExpectedPrice / mInputs[0]->getPrice(aRegionName, aPeriod), mLogitExponent)) * aVariableDemand);
+        const Modeltime* modeltime = scenario->getModeltime();
+        mConsumption = aVariableDemand; // doesn't need to be member variable just here to write to debug xml for now
+
+        if (aPeriod <= modeltime->getFinalCalibrationPeriod()) {  
+            mShareWeight = mClosingStock / ((pow(mExpectedPrice / mInputs[0]->getPrice(aRegionName, aPeriod), mLogitExponent)) * mConsumption);
         }
 
-        mStoredValue = mShareWeight * (pow(mExpectedPrice / mInputs[0]->getPrice(aRegionName, aPeriod), mLogitExponent))*aVariableDemand;
-        double total = mStoredValue + aVariableDemand;
-        double totalToVariableRatio = total / aVariableDemand;
+        mStoredValue = mShareWeight * (pow(mExpectedPrice / mInputs[0]->getPrice(aRegionName, aPeriod), mLogitExponent))* mConsumption;
+        double total = mStoredValue + mConsumption;
+        double totalToVariableRatio = total / mConsumption;
         mInputs[0]->setCoefficient(totalToVariableRatio, aPeriod);
+
+        mTotal = total;
+       
     }
     else if(mProductionState[aPeriod]->isOperating()){
+        OutputPosition = 1;
         mInputs[0]->setCoefficient(0, aPeriod);
+        
     }
-    Technology::production(aRegionName, aSectorName, aVariableDemand, aFixedOutputScaleFactor, aGDP, aPeriod);
+
+    // Early exit optimization to avoid running through the demand function and
+    // emissions calculations for non-operating technologies.
+    if (!mProductionState[aPeriod]->isOperating()) {
+        return;
+    }
+
+    // Construct a marginal profit calculator. This allows the calculation of 
+    // marginal profits to be lazy.
+    MarginalProfitCalculator marginalProfitCalc(this);
+
+    // Use the production state to determine output.
+    double primaryOutput =
+        mProductionState[aPeriod]->calcProduction(aRegionName,
+            aSectorName,
+            aVariableDemand,
+            &marginalProfitCalc,
+            aFixedOutputScaleFactor,
+            mShutdownDeciders,
+            aPeriod);
+
+    // Calculate input demand.
+    mProductionFunction->calcDemand(mInputs, primaryOutput, aRegionName, aSectorName,
+        1, aPeriod, 0, mAlphaZero);
+
+        mOutputs[OutputPosition]->setPhysicalOutput(primaryOutput, aRegionName, mCaptureComponent, aPeriod);
+    
 }
 
 
@@ -195,8 +233,8 @@ bool FoodStorageTechnology::XMLDerivedClassParse( const string& aNodeName, const
         mCarriedForwardValue = XMLHelper<Value>::getValue(aNode);
         return true;
     }
-    else if (aNodeName == "initial-stock") { //calibrated value from that period
-        mInitialStock = XMLHelper<Value>::getValue(aNode);
+    else if (aNodeName == "closing-stock") { //calibrated value from that period
+        mClosingStock = XMLHelper<Value>::getValue(aNode);
         return true;
     }
     else if (aNodeName == "logit-exponent") {
@@ -214,5 +252,9 @@ bool FoodStorageTechnology::XMLDerivedClassParse( const string& aNodeName, const
 void FoodStorageTechnology::toDebugXMLDerived( const int aPeriod, ostream& aOut, Tabs* aTabs ) const {
     XMLWriteElement(mStoredValue, "stored-value", aOut, aTabs);
     XMLWriteElement(mExpectedPrice, "expected-price", aOut, aTabs);
+    XMLWriteElement(mConsumption, "consumption", aOut, aTabs);
+    XMLWriteElement(mClosingStock, "closing-stock", aOut, aTabs);
+    XMLWriteElement(mTotal, "total-supply", aOut, aTabs);
+    XMLWriteElement(mShareWeight, "share-weight", aOut, aTabs);
 }
 

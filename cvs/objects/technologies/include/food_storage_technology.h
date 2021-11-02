@@ -59,6 +59,7 @@ class IVisitor;
  */
 class FoodStorageTechnology: public Technology
 {
+   friend class XMLDBOutputter;
 public:
     FoodStorageTechnology( const std::string& aName, const int aYear );
     virtual ~FoodStorageTechnology();
@@ -83,6 +84,12 @@ public:
         PreviousPeriodInfo& aPrevPeriodInfo,
         const int aPeriod);
 
+    virtual double getFixedOutput(const std::string& aRegionName,
+        const std::string& aSectorName,
+        const bool aHasRequiredInput,
+        const std::string& aRequiredInput,
+        const double aMarginalRevenue,
+        const int aPeriod) const;
 
     virtual void production( const std::string& aRegionName,
                              const std::string& aSectorName,
@@ -106,13 +113,17 @@ protected:
         // Expected price of food crop
         DEFINE_VARIABLE(SIMPLE, "expected-price", mExpectedPrice, Value),
         //initial amount of crop in storage
-        DEFINE_VARIABLE(SIMPLE, "initial-stock", mInitialStock, Value),
+        DEFINE_VARIABLE(SIMPLE, "closing-stock", mClosingStock, Value),
         //
         DEFINE_VARIABLE(SIMPLE | STATE, "stored-value", mStoredValue, Value),
         //
         DEFINE_VARIABLE(SIMPLE, "logit-exponent", mLogitExponent, Value), 
         //
-        DEFINE_VARIABLE(SIMPLE, "loss-coefficient", mLossCoefficient, Value)
+        DEFINE_VARIABLE(SIMPLE, "loss-coefficient", mLossCoefficient, Value),
+    
+        DEFINE_VARIABLE(SIMPLE | STATE, "consumption", mConsumption, Value),
+
+        DEFINE_VARIABLE(SIMPLE | STATE, "total", mTotal, Value)
     )
     
     void copy( const FoodStorageTechnology& aOther );
