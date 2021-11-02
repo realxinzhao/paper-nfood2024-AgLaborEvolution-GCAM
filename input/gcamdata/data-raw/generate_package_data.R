@@ -152,6 +152,15 @@ generate_level2_data_names <- function() {
   level2_data_names[["ResReserveTechDeclinePhase"]] <- c("region", "resource", "reserve.subresource", "resource.reserve.technology", "year", "decline.phase.percent")
   level2_data_names[["ResReserveTechCoef"]] <- c("region", "resource", "reserve.subresource", "resource.reserve.technology", "year", "minicam.energy.input", "coefficient")
 
+  # Food Storage Techs
+  level2_data_names[["FoodStorageTech"]] <- c("region", "supplysector", "subsector", "food.storage.technology")
+  level2_data_names[["FoodStorageTechYr"]] <- c(level2_data_names[["FoodStorageTech"]], "year")
+  level2_data_names[["FoodTechCoef"]] <- c(level2_data_names[["FoodStorageTechYr"]], "minicam.energy.input", "coefficient", "market.name")
+  level2_data_names[["FoodTechCost"]] <- c(level2_data_names[["FoodStorageTechYr"]], "minicam.non.energy.input", "input.cost")
+  level2_data_names[["FoodTech"]] <- c(level2_data_names[["FoodStorageTechYr"]], "share.weight", "logit.exponent", "closing.stock", "loss.coefficient", "carried.forward", "lifetime")
+  level2_data_names[["FoodTechInterp"]] <- c(level2_data_names[["FoodStorageTech"]], "apply.to", "from.year", "to.year", "interpolation.function")
+  level2_data_names[["FoodTechRESSecOut"]] <- c(level2_data_names[["FoodStorageTechYr"]], "res.secondary.output", "output.ratio")
+
   # Global technologies
   level2_data_names[["GlobalTechInputPMult"]] <- c("sector.name", "subsector.name", "technology", "year","minicam.energy.input", "price.unit.conversion")
   level2_data_names[["GlobalTech"]] <- c("sector.name", "subsector.name", "technology")
