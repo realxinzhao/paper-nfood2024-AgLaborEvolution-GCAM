@@ -104,6 +104,7 @@
 #include "functions/include/building_service_input.h"
 #include "functions/include/satiation_demand_function.h"
 #include "functions/include/food_demand_input.h"
+#include "technologies/include/food_storage_technology.h"
 #include <typeinfo>
 
 // Whether to write a text file with the contents that are to be inserted
@@ -839,6 +840,11 @@ void XMLDBOutputter::startVisitTechnology( const Technology* aTechnology, const 
                     *childBuffer, mTabs.get(), curr, mCurrentPriceUnit );
             }
         }
+    }
+    const FoodStorageTechnology* foodStorageTech = dynamic_cast <const FoodStorageTechnology*> (mCurrentTechnology);
+    if (foodStorageTech) {
+        writeItemToBuffer(foodStorageTech->mStoredValue, "aggregate-storage",
+            *childBuffer, mTabs.get(), 0, mCurrentOutputUnit);
     }
 }
 
