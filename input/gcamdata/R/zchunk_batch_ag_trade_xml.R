@@ -42,6 +42,29 @@ module_aglu_batch_ag_trade_xml <- function(command, ...) {
 
     # ===================================================
 
+
+    # temporary changes for ag storage testing (XZ 2023; will remove later)
+    MODULE_INPUTS_AdjustUSRegionalCorn <-
+              c("L240.Supplysector_reg",
+              "L240.SubsectorAll_reg",
+              "L240.TechShrwt_reg",
+              "L240.TechCoef_reg",
+              "L240.Production_reg_imp",
+              "L240.Production_reg_dom")
+
+    lapply(MODULE_INPUTS_AdjustUSRegionalCorn, function(df){
+      get(df) %>%
+        mutate(supplysector = if_else(region == "USA" & supplysector == "regional corn",
+                                      "total corn", supplysector)) ->
+        data
+      print(data)
+
+      assign(df, data, envir = parent.env(environment()))
+
+    })
+
+
+
     # Produce outputs
     create_xml("ag_trade.xml") %>%
       add_logit_tables_xml(L240.Supplysector_tra, "Supplysector") %>%
