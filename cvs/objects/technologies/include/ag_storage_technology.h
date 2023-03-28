@@ -1,5 +1,5 @@
-#ifndef _FOOD_STORAGE_TECHNOLOGY_H_
-#define _FOOD_STORAGE_TECHNOLOGY_H_
+#ifndef _AG_STORAGE_TECHNOLOGY_H_
+#define _AG_STORAGE_TECHNOLOGY_H_
 #if defined(_MSC_VER)
 #pragma once
 #endif
@@ -38,9 +38,9 @@
 
 
 /*!
- * \file FOOD_STORAGE_TECHNOLOGY.H
+ * \file AG_STORAGE_TECHNOLOGY.H
  * \ingroup Objects
- * \brief The FoodStorageTechnology class header file.
+ * \brief The AgStorageTechnology class header file.
  * \author Ellie Lochner
  */
 class IVisitor;
@@ -57,20 +57,20 @@ class IVisitor;
  *
  * \author Pralit Patel
  */
-class FoodStorageTechnology: public Technology
+class AgStorageTechnology: public Technology
 {
    friend class XMLDBOutputter;
 public:
-    FoodStorageTechnology();
-    FoodStorageTechnology( const std::string& aName, const int aYear );
-    virtual ~FoodStorageTechnology();
+    AgStorageTechnology();
+    AgStorageTechnology( const std::string& aName, const int aYear );
+    virtual ~AgStorageTechnology();
 
     static const std::string& getXMLNameStatic();
 
     // ITechnology methods
     virtual const std::string& getXMLName() const;
 
-    virtual FoodStorageTechnology* clone() const;
+    virtual AgStorageTechnology* clone() const;
 
     virtual void completeInit( const std::string& aRegionName,
                                const std::string& aSectorName,
@@ -126,10 +126,10 @@ protected:
         DEFINE_VARIABLE(SIMPLE | STATE | NOT_PARSABLE, "total", mTotal, Value)
     )
     
-    void copy( const FoodStorageTechnology& aOther );
+    void copy( const AgStorageTechnology& aOther );
     virtual void setProductionState(const int aPeriod);
 
 };
 
-#endif // _FOOD_STORAGE_TECHNOLOGY_H_
+#endif // _AG_STORAGE_TECHNOLOGY_H_
 

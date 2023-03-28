@@ -34,7 +34,7 @@
 /*!
  * \file pass_through_technology.cpp
  * \ingroup Objects
- * \brief FoodStorageTechnology class source file.
+ * \brief AgStorageTechnology class source file.
  * \author Ellie Lochner
  */
 
@@ -42,7 +42,7 @@
 #include "util/base/include/definitions.h"
 #include <string>
 #include <cassert>
-#include "technologies/include/food_storage_technology.h"
+#include "technologies/include/ag_storage_technology.h"
 #include "containers/include/scenario.h"
 #include "marketplace/include/marketplace.h"
 #include "containers/include/iinfo.h"
@@ -58,42 +58,42 @@ using namespace std;
 
 extern Scenario* scenario;
 
-FoodStorageTechnology::FoodStorageTechnology()
+AgStorageTechnology::AgStorageTechnology()
 {
 }
 
-FoodStorageTechnology::FoodStorageTechnology( const string& aName, const int aYear ):
+AgStorageTechnology::AgStorageTechnology( const string& aName, const int aYear ):
 Technology(aName, aYear )
 {
 }
 
-FoodStorageTechnology::~FoodStorageTechnology() {
+AgStorageTechnology::~AgStorageTechnology() {
 }
 
-FoodStorageTechnology* FoodStorageTechnology::clone() const {
-    FoodStorageTechnology* clone = new FoodStorageTechnology( mName, mYear );
+AgStorageTechnology* AgStorageTechnology::clone() const {
+    AgStorageTechnology* clone = new AgStorageTechnology( mName, mYear );
     clone->copy( *this );
     return clone;
 }
 
-void FoodStorageTechnology::copy( const FoodStorageTechnology& aOther ) {
+void AgStorageTechnology::copy( const AgStorageTechnology& aOther ) {
     Technology::copy( aOther );
     
     mLogitExponent = aOther.mLogitExponent;
     mLossCoefficient = aOther.mLossCoefficient;
 }
 
-const string& FoodStorageTechnology::getXMLNameStatic() {
+const string& AgStorageTechnology::getXMLNameStatic() {
     const static string XML_NAME = "food-storage-technology";
 
     return XML_NAME;
 }
 
-const string& FoodStorageTechnology::getXMLName() const {
+const string& AgStorageTechnology::getXMLName() const {
     return getXMLNameStatic();
 }
 
-void FoodStorageTechnology::completeInit(const string& aRegionName,
+void AgStorageTechnology::completeInit(const string& aRegionName,
     const string& aSectorName,
     const string& aSubsectorName,
     const IInfo* aSubsectorInfo,
@@ -102,7 +102,7 @@ void FoodStorageTechnology::completeInit(const string& aRegionName,
 
     Technology::completeInit(aRegionName, aSectorName, aSubsectorName, aSubsectorInfo, aLandAllocator);
 
-    // The FoodStorageTechnology should not have any vintaging.  All vintaging should be
+    // The AgStorageTechnology should not have any vintaging.  All vintaging should be
     // in the associated pass-through sector
     const Modeltime* modeltime = scenario->getModeltime();
     
@@ -115,7 +115,7 @@ void FoodStorageTechnology::completeInit(const string& aRegionName,
 
 }
 
-void FoodStorageTechnology::setProductionState(const int aPeriod) {
+void AgStorageTechnology::setProductionState(const int aPeriod) {
     // Check that the state for this period has not already been initialized.
     // Note that this is the case when the same scenario is run multiple times
     // for instance when doing the policy cost calculation.  In which case
@@ -140,7 +140,7 @@ void FoodStorageTechnology::setProductionState(const int aPeriod) {
 }
 
 
-void FoodStorageTechnology::initCalc(const string& aRegionName,
+void AgStorageTechnology::initCalc(const string& aRegionName,
     const string& aSectorName,
     const IInfo* aSubsectorInfo,
     const Demographic* aDemographics,
@@ -157,7 +157,7 @@ void FoodStorageTechnology::initCalc(const string& aRegionName,
     }
 }
 
-double FoodStorageTechnology::getFixedOutput(const string& aRegionName,
+double AgStorageTechnology::getFixedOutput(const string& aRegionName,
     const string& aSectorName,
     const bool aHasRequiredInput,
     const string& aRequiredInput,
@@ -167,7 +167,7 @@ double FoodStorageTechnology::getFixedOutput(const string& aRegionName,
     return 0;
 }
 
-void FoodStorageTechnology::production(const string& aRegionName,
+void AgStorageTechnology::production(const string& aRegionName,
     const string& aSectorName,
     double aVariableDemand,
     double aFixedOutputScaleFactor,
@@ -230,7 +230,7 @@ void FoodStorageTechnology::production(const string& aRegionName,
 }
 
 //! write object to xml output stream
-void FoodStorageTechnology::toDebugXMLDerived( const int aPeriod, ostream& aOut, Tabs* aTabs ) const {
+void AgStorageTechnology::toDebugXMLDerived( const int aPeriod, ostream& aOut, Tabs* aTabs ) const {
     XMLWriteElement(mStoredValue, "stored-value", aOut, aTabs);
     XMLWriteElement(mExpectedPrice, "expected-price", aOut, aTabs);
     XMLWriteElement(mConsumption, "consumption", aOut, aTabs);
