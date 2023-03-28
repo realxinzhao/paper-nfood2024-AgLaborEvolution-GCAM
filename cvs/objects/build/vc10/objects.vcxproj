@@ -682,6 +682,7 @@
     <ClCompile Include="..\..\technologies\source\exogenous_shutdown_decider.cpp" />
     <ClCompile Include="..\..\technologies\source\expenditure.cpp" />
     <ClCompile Include="..\..\technologies\source\fixed_production_state.cpp" />
+    <ClCompile Include="..\..\technologies\source\food_storage_technology.cpp" />
     <ClCompile Include="..\..\technologies\source\fractional_secondary_output.cpp" />
     <ClCompile Include="..\..\technologies\source\generic_output.cpp" />
     <ClCompile Include="..\..\technologies\source\global_technology_database.cpp" />
@@ -965,6 +966,7 @@
     <ClInclude Include="..\..\technologies\include\exogenous_shutdown_decider.h" />
     <ClInclude Include="..\..\technologies\include\expenditure.h" />
     <ClInclude Include="..\..\technologies\include\fixed_production_state.h" />
+    <ClInclude Include="..\..\technologies\include\food_storage_technology.h" />
     <ClInclude Include="..\..\technologies\include\fractional_secondary_output.h" />
     <ClInclude Include="..\..\technologies\include\generic_output.h" />
     <ClInclude Include="..\..\technologies\include\global_technology_database.h" />

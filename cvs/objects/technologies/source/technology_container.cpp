@@ -64,6 +64,7 @@
 #include "technologies/include/resource_reserve_technology.h"
 #include "technologies/include/food_storage_technology.h"
 #include "technologies/include/empty_technology.h"
+#include "technologies/include/food_storage_technology.h"
 
 extern Scenario* scenario;
 

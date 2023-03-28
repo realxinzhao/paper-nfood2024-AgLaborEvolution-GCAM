@@ -55,9 +55,12 @@
 
 
 using namespace std;
-using namespace xercesc;
 
 extern Scenario* scenario;
+
+FoodStorageTechnology::FoodStorageTechnology()
+{
+}
 
 FoodStorageTechnology::FoodStorageTechnology( const string& aName, const int aYear ):
 Technology(aName, aYear )
@@ -224,28 +227,6 @@ void FoodStorageTechnology::production(const string& aRegionName,
 
         mOutputs[OutputPosition]->setPhysicalOutput(primaryOutput, aRegionName, mCaptureComponent, aPeriod);
     
-}
-
-
-
-bool FoodStorageTechnology::XMLDerivedClassParse( const string& aNodeName, const DOMNode* aNode ) {
-    if (aNodeName == "carried-forward") { //what you get from previous period
-        mCarriedForwardValue = XMLHelper<Value>::getValue(aNode);
-        return true;
-    }
-    else if (aNodeName == "closing-stock") { //calibrated value from that period
-        mClosingStock = XMLHelper<Value>::getValue(aNode);
-        return true;
-    }
-    else if (aNodeName == "logit-exponent") {
-        mLogitExponent = XMLHelper<Value>::getValue(aNode);
-        return true;
-    }
-    else if (aNodeName == "loss-coefficient") {
-        mLossCoefficient = XMLHelper<Value>::getValue(aNode);
-        return true;
-    }
-    return false;
 }
 
 //! write object to xml output stream

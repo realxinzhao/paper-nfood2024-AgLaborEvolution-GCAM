@@ -61,6 +61,7 @@ class FoodStorageTechnology: public Technology
 {
    friend class XMLDBOutputter;
 public:
+    FoodStorageTechnology();
     FoodStorageTechnology( const std::string& aName, const int aYear );
     virtual ~FoodStorageTechnology();
 
@@ -100,7 +101,6 @@ public:
 
 
 protected:
-    virtual bool XMLDerivedClassParse( const std::string& aNodeName, const xercesc::DOMNode* aNode );
     virtual void toDebugXMLDerived( const int aPeriod, std::ostream& aout, Tabs* aTabs ) const;
 
     // Define data such that introspection utilities can process the data from this
@@ -111,19 +111,19 @@ protected:
         //! Amount carried forward from one model period to the next 
         DEFINE_VARIABLE( SIMPLE, "carried-forward", mCarriedForwardValue, Value ),
         // Expected price of food crop
-        DEFINE_VARIABLE(SIMPLE, "expected-price", mExpectedPrice, Value),
+        DEFINE_VARIABLE(SIMPLE | NOT_PARSABLE, "expected-price", mExpectedPrice, Value),
         //initial amount of crop in storage
         DEFINE_VARIABLE(SIMPLE, "closing-stock", mClosingStock, Value),
         //
-        DEFINE_VARIABLE(SIMPLE | STATE, "stored-value", mStoredValue, Value),
+        DEFINE_VARIABLE(SIMPLE | STATE | NOT_PARSABLE, "stored-value", mStoredValue, Value),
         //
         DEFINE_VARIABLE(SIMPLE, "logit-exponent", mLogitExponent, Value), 
         //
         DEFINE_VARIABLE(SIMPLE, "loss-coefficient", mLossCoefficient, Value),
     
-        DEFINE_VARIABLE(SIMPLE | STATE, "consumption", mConsumption, Value),
+        DEFINE_VARIABLE(SIMPLE | STATE | NOT_PARSABLE, "consumption", mConsumption, Value),
 
-        DEFINE_VARIABLE(SIMPLE | STATE, "total", mTotal, Value)
+        DEFINE_VARIABLE(SIMPLE | STATE | NOT_PARSABLE, "total", mTotal, Value)
     )
     
     void copy( const FoodStorageTechnology& aOther );
