@@ -60,9 +60,11 @@ module_aglu_batch_ag_storage_xml <- function(command, ...) {
                  year = c(MODEL_BASE_YEARS, min(MODEL_FUTURE_YEARS)),
                  share.weight = 1,
                  logit.exponent = 0.6,
-                 closing.stock = 80,   loss.coefficient = 1,  carried.forward = 80) %>%
+                 closing.stock = 0,   loss.coefficient = 1,  carried.forward = 0) %>%
         dplyr::group_by_at(vars(region:food.storage.technology)) %>%
         mutate(lifetime = lead(year, 2) - year) %>%
+        mutate(lifetime = if_else(year == 1990, 16, lifetime),
+               lifetime = if_else(year == 2005, 6, lifetime)) %>%
         ungroup() %>%
         replace_na(list(lifetime = Model_Period_Length * 2)) %>%
         select(LEVEL2_DATA_NAMES[["FoodTech"]])
@@ -77,7 +79,7 @@ module_aglu_batch_ag_storage_xml <- function(command, ...) {
 
     fst_RESSecOut <-
       fst_extra %>% mutate(minicam.non.energy.input = "storage-cost",
-                         res.secondary.output = "corn", output.ratio = 1) %>%
+                         res.secondary.output = "Corn", output.ratio = 1) %>%
       select(LEVEL2_DATA_NAMES[["FoodTechRESSecOut"]])
 
     fst_shwt <-
