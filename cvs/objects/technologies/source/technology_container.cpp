@@ -62,9 +62,8 @@
 #include "technologies/include/pass_through_technology.h"
 #include "technologies/include/unmanaged_land_technology.h"
 #include "technologies/include/resource_reserve_technology.h"
-#include "technologies/include/food_storage_technology.h"
-#include "technologies/include/empty_technology.h"
 #include "technologies/include/ag_storage_technology.h"
+#include "technologies/include/empty_technology.h"
 
 extern Scenario* scenario;
 
@@ -136,7 +135,7 @@ bool TechnologyContainer::hasTechnologyType( const string& aTechNodeName ) {
              aTechNodeName == AgProductionTechnology::getXMLNameStatic() ||
              aTechNodeName == PassThroughTechnology::getXMLNameStatic() ||
              aTechNodeName == UnmanagedLandTechnology::getXMLNameStatic() ||
-			 aTechNodeName == AgStorageTechnology::getXMLNameStatic() ||
+             aTechNodeName == AgStorageTechnology::getXMLNameStatic() ||
              aTechNodeName == ResourceReserveTechnology::getXMLNameStatic() );
 }
 
@@ -148,6 +147,102 @@ bool TechnologyContainer::XMLParse( rapidxml::xml_node<char>* & aNode) {
         using value_type = ITechnology*;
         using data_type = ITechnology;
         using FactoryType = Factory<ITechnology::SubClassFamilyVector>;
+        
+        //string nodeName(aNode->name(), aNode->name_size());
+        map<string, string> attrs = XMLParseHelper::getAllAttrs(aNode);
+        bool deleteFlagSet = XMLParseHelper::isAttrFlagSet( attrs, "delete" );
+        bool noCreateFlagSet = XMLParseHelper::isAttrFlagSet( attrs, "nocreate" );
+        attrs["name"] = mName;
+        int year = boost::lexical_cast<int>(attrs["year"]);
+        
+        // We need to try to find in the array if the container exists
+        auto dataIter = mVintages.find(year);
+        bool found = dataIter != mVintages.end();
+        /*bool found = false;
+        for( auto currIter = mVintages.begin(); currIter != mVintages.end() && !found; ++currIter ) {
+            if( GetFilterForContainer<data_type>::filter_type::matchesXMLAttr( (*currIter).second, attrs ) ) {
+                found = true;
+                dataIter = currIter;
+            }
+        }*/
+        value_type currContainer = found ? (*dataIter).second : 0;
+        if( !found ) {
+            // The instance of the container has not been set yet.
+            if( deleteFlagSet ) {
+                // log delete set but container not found
+                ILogger& mainLog = ILogger::getLogger( "main_log" );
+                mainLog.setLevel( ILogger::ERROR );
+                mainLog << "Could not delete node " << nodeName << " as it does not exist." << std::endl;
+                return true;
+            } else if( noCreateFlagSet ) {
+                // log nocreate
+                ILogger& mainLog = ILogger::getLogger( "main_log" );
+                mainLog.setLevel( ILogger::NOTICE );
+                mainLog << "Did not create node " << nodeName << " as the nocreate input flag was set." << std::endl;
+                return true;
+            }
+            else {
+                // No previous container so add a new one.
+                
+                // Some error checking to make sure the type of class that was created is
+                // acutally a subclass of the type aData was declared as.  For instance
+                // LandAllocator has a base class ALandAllocatorItem however in
+                // RegionMiniCAM::mLandAllocator we want to ensure only the type LandAllocator
+                // is created and not for instance a LandLeaf.
+                /*typename FactoryType::FamilyBasePtr temp*/currContainer = FactoryType::createType( techType );
+                /*currContainer = dynamic_cast<typename decltype( mVintages )::mapped_type>( temp );
+                if( temp && !currContainer ) {
+                    // log temp->getXMLName() is not a subclass of typename DataType::value_type::getXMLNameStatic()
+                    ILogger& mainLog = ILogger::getLogger( "main_log" );
+                    mainLog.setLevel( ILogger::ERROR );
+                    mainLog << "Attempted to set incompatible type " << nodeName << " as " << typeid(ITechnology).name() << std::endl;
+                    abort();
+                }*/
+                mVintages[ year/*boost::lexical_cast<int>( attrs[ GetFilterForContainer<data_type>::filter_type::getXMLAttrKey() ] )*/ ] = currContainer;
+            }
+        }
+        else {
+            // There is already an instance set
+            if( deleteFlagSet ) {
+                // when we get a delete flag we simply delete and ignore the rest.
+                ILogger& mainLog = ILogger::getLogger( "main_log" );
+                mainLog.setLevel( ILogger::DEBUG );
+                mainLog << "Deleting node: " << nodeName << std::endl;
+                delete currContainer;
+                currContainer = 0;
+                mVintages.erase( dataIter );
+                return true;
+            }
+            else {
+                // else we can just use this instance
+                // TODO check to make sure the XML names are the same
+            }
+        }
+        
+        // parse child nodes
+        ParseChildData parseChildHelper(aNode, attrs);
+        parseChildHelper.setContainer(currContainer);
+        ExpandDataVector<typename data_type::SubClassFamilyVector> getDataVector;
+        currContainer->doDataExpansion( getDataVector );
+        getDataVector.getFullDataVector(parseChildHelper);
+        return true;
+    }
+    else if( nodeName == InterpolationRule::getXMLNameStatic() ) {
+        // just handle the interpolation rule clear
+        map<string, string> attrs = XMLParseHelper::getAllAttrs(aNode);
+        if( attrs["apply-to"] == "share-weight" && attrs["delete"] == "1" ) {
+            clearInterpolationRules();
+        }
+        InterpolationRule* tempRule = new InterpolationRule();
+        ParseChildData parseChildHelper(aNode, attrs);
+        parseChildHelper.setContainer(tempRule);
+        ExpandDataVector<InterpolationRule::SubClassFamilyVector> getDataVector;
+        tempRule->doDataExpansion( getDataVector );
+        getDataVector.getFullDataVector(parseChildHelper);
+        mShareWeightInterpRules.push_back( tempRule );
+        return true;
+    }
+    return false;
 }
 
 void TechnologyContainer::toDebugXML( const int aPeriod, ostream& aOut, Tabs* aTabs ) const {

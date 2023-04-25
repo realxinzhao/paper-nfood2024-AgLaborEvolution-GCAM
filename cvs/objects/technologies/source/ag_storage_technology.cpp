@@ -223,7 +223,7 @@ void AgStorageTechnology::production(const string& aRegionName,
 
     // Calculate input demand.
     mProductionFunction->calcDemand(mInputs, primaryOutput, aRegionName, aSectorName,
-        1, aPeriod, 0, mAlphaZero);
+        1, aPeriod, 0, 1);
 
         mOutputs[OutputPosition]->setPhysicalOutput(primaryOutput, aRegionName, mCaptureComponent, aPeriod);
     
