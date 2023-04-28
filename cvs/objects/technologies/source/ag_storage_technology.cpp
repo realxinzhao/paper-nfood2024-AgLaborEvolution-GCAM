@@ -182,7 +182,9 @@ void AgStorageTechnology::production(const string& aRegionName,
 
         const Modeltime* modeltime = scenario->getModeltime();
         mConsumption = aVariableDemand; // doesn't need to be member variable just here to write to debug xml for now
-
+        if (!util::isValidNumber(mConsumption)) {
+            mConsumption = 1;
+        }
         if (aPeriod <= modeltime->getFinalCalibrationPeriod()) {  
             mShareWeight = mClosingStock / ((pow(mExpectedPrice / mInputs[0]->getPrice(aRegionName, aPeriod), mLogitExponent)) * mConsumption);
         }

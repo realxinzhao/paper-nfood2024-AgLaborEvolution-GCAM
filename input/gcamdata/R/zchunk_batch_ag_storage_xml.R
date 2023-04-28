@@ -60,7 +60,7 @@ module_aglu_batch_ag_storage_xml <- function(command, ...) {
                  year = c(MODEL_BASE_YEARS, min(MODEL_FUTURE_YEARS)),
                  share.weight = 1,
                  logit.exponent = 0.6,
-                 closing.stock = 0,   loss.coefficient = 1,  carried.forward = 0) %>%
+                 closing.stock = 10,   loss.coefficient = 1,  carried.forward = 10) %>%
         dplyr::group_by_at(vars(region:food.storage.technology)) %>%
         mutate(lifetime = lead(year, 2) - year) %>%
         mutate(lifetime = if_else(year == 1990, 16, lifetime),
