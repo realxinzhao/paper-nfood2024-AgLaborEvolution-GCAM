@@ -64,7 +64,10 @@ module_aglu_batch_ag_trade_xml <- function(command, ...) {
 
     # update domestic corn for testing
     L240.Production_reg_dom %>% filter(supplysector == "total corn") %>%
-      mutate(calOutputValue = calOutputValue + 10) ->
+      mutate(calOutputValue = calOutputValue + 10) %>%
+      bind_rows(
+        L240.Production_reg_dom %>% filter(supplysector != "total corn")
+      ) ->
       L240.Production_reg_dom
 
     # Produce outputs
