@@ -79,7 +79,7 @@ module_aglu_batch_ag_storage_xml <- function(command, ...) {
 
     fst_RESSecOut <-
       fst_extra %>% mutate(minicam.non.energy.input = "storage-cost",
-                         res.secondary.output = "Corn", output.ratio = 1) %>%
+                           res.secondary.output = "Corn", output.ratio = 1, pMultiplier = 0) %>%
       select(LEVEL2_DATA_NAMES[["FoodTechRESSecOut"]])
 
     fst_shwt <-

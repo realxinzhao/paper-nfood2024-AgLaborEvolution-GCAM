@@ -57,13 +57,15 @@ module_aglu_batch_ag_trade_xml <- function(command, ...) {
         mutate(supplysector = if_else(region == "USA" & supplysector == "regional corn",
                                       "total corn", supplysector)) ->
         data
-      print(data)
 
       assign(df, data, envir = parent.env(environment()))
 
     })
 
-
+    # update domestic corn for testing
+    L240.Production_reg_dom %>% filter(supplysector == "total corn") %>%
+      mutate(calOutputValue = calOutputValue + 10) ->
+      L240.Production_reg_dom
 
     # Produce outputs
     create_xml("ag_trade.xml") %>%
