@@ -271,7 +271,7 @@ FoodTechCost, world/+{name}region, region/+{name}supplysector, supplysector/+{na
 
 FoodTechInterp, world/+{name}region, region/+{name}supplysector, supplysector/+{name}subsector, subsector/+{name}food-storage-technology, food-storage-technology/+{apply-to}interpolation-rule, food-storage-technology/+{from-year}interpolation-rule, food-storage-technology/+{to-year}interpolation-rule, interpolation-rule/+{name}interpolation-function, scenario, scenario/world
 
-FoodTechRESSecOut, world/+{name}region, region/+{name}supplysector, supplysector/+{name}subsector, subsector/+{name}food-storage-technology, food-storage-technology/+{year}period, period/+{name}res-secondary-output, res-secondary-output/+output-ratio, scenario, scenario/world
+FoodTechRESSecOut, world/+{name}region, region/+{name}supplysector, supplysector/+{name}subsector, subsector/+{name}food-storage-technology, food-storage-technology/+{year}period, period/+{name}res-secondary-output, res-secondary-output/+output-ratio, res-secondary-output/+pMultiplier, scenario, scenario/world
 
 #####, GLOBAL TECHNOLOGY
 

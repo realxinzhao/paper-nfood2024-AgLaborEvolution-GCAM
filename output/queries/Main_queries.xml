@@ -1,52 +1,63 @@
 <?xml version="1.0" encoding="UTF-8"?><queries>
-     <queryGroup name="food storage">
-<marketQuery title="total corn supply">
-    <axis1 name="market">market</axis1>
-    <axis2 name="Year">market</axis2>
-    <xPath buildList="true" dataName="price" group="false" sumAll="false">Marketplace/market[@name='USAcorn']/supply/node()</xPath>
-    <comments/>
-</marketQuery>
-<supplyDemandQuery title="corn production (no storage)">
-    <axis1 name="resource">resource</axis1>
-    <axis2 name="Year">output</axis2>
-    <xPath buildList="true" dataName="output" group="false" sumAll="false">*[@type='resource']//output/node()</xPath>
-    <comments/>
-</supplyDemandQuery>
-<supplyDemandQuery title="supply from storage">
-    <axis1 name="technology">technology[@name]</axis1>
-    <axis2 name="Year">physical-output[@vintage]</axis2>
-    <xPath buildList="true" dataName="output" group="false" sumAll="false">*[@type='sector']/*[@type='subsector']/*[@type='technology']/res-secondary-output[@type='output']/physical-output/node()</xPath>
-    <comments/>
-</supplyDemandQuery>
-<marketQuery title="corn price">
-    <axis1 name="market">market</axis1>
-    <axis2 name="Year">market</axis2>
-    <xPath buildList="true" dataName="price" group="false" sumAll="false">Marketplace/market[true() and contains(@name,'USAcorn')]/price/node()</xPath>
-    <comments/>
-</marketQuery>
-<supplyDemandQuery title="corn final demand">
-    <axis1 name="sector">final-demand[@name]</axis1>
-    <axis2 name="Year">service[@year]</axis2>
-    <xPath buildList="true" dataName="output" group="false" sumAll="false">*[@type='final-demand']/service/node()</xPath>
-    <comments/>
-</supplyDemandQuery>
-<supplyDemandQuery title="food storage share-weights">
-    <axis1 name="technology">technology</axis1>
-    <axis2 name="Year">technology</axis2>
-    <xPath buildList="true" dataName="output" group="false" sumAll="false">*[@type='sector' and
-               (@name='regional-corn')]/
+    <queryGroup name="food storage">
+        <marketQuery title="total corn supply (prod + open stock)">
+            <axis1 name="market">market</axis1>
+            <axis2 name="Year">market</axis2>
+            <xPath buildList="true" dataName="price" group="false" sumAll="false">Marketplace/market[@name='USACorn']/supply/node()</xPath>
+            <comments/>
+        </marketQuery>
+        <supplyDemandQuery title="ag production">
+            <axis1 name="sector">sector[@name]</axis1>
+            <axis2 name="Year">physical-output[@vintage]</axis2>
+            <xPath buildList="true" dataName="output" group="false" sumAll="false">*[@type='sector' and contains(@name, 'Corn') and (local-name()='AgSupplySector')]//
+            output-primary/physical-output/node()</xPath>
+            <comments>primary output only (no residue biomass)</comments>
+        </supplyDemandQuery>
+        <supplyDemandQuery title="ag total prices (W. mean b/t import and domestic)">
+            <axis1 name="sector">sector</axis1>
+            <axis2 name="Year">cost</axis2>
+            <xPath buildList="true" dataName="input" group="false" sumAll="false">*[@type='sector' and contains(@name, 'total corn')]/cost[@unit='1975$/kg' or @unit='1975$/m3']/text()</xPath>
+            <comments/>
+        </supplyDemandQuery>
+        <supplyDemandQuery title="ag producer prices (domestic)">
+            <axis1 name="sector">sector</axis1>
+            <axis2 name="Year">cost</axis2>
+            <xPath buildList="true" dataName="price" group="false" sumAll="false">*[@type='sector' and contains(@name, 'Corn') and (local-name()='AgSupplySector')]/cost/text()</xPath>
+            <comments/>
+        </supplyDemandQuery>
+        <supplyDemandQuery title="ag regional prices for current consumption">
+            <axis1 name="sector">sector</axis1>
+            <axis2 name="Year">cost</axis2>
+            <xPath buildList="true" dataName="input" group="false" sumAll="false">*[@type='sector' and contains(@name, 'regional corn')]/cost[@unit='1975$/kg' or @unit='1975$/m3']/text()</xPath>
+            <comments/>
+        </supplyDemandQuery>
+        <supplyDemandQuery title="total regional ag supply">
+            <axis1 name="input">input</axis1>
+            <axis2 name="Year">demand-physical[@vintage]</axis2>
+            <xPath buildList="true" dataName="input" group="false" sumAll="false">*[@type='sector' and contains(@name, 'regional')]/*[@type='subsector']//*[@type='input' and contains(@name, 'total')]/demand-physical[@unit='Mt' or @unit='billion m3']/node()</xPath>
+            <comments/>
+        </supplyDemandQuery>
+        <supplyDemandQuery title="total ag supply by source">
+            <axis1 name="input">input</axis1>
+            <axis2 name="Year">demand-physical[@vintage]</axis2>
+            <xPath buildList="true" dataName="input" group="false" sumAll="false">*[@type='sector' and contains(@name, 'total')]/*[@type='subsector']//*[@type='input']/demand-physical[@unit='Mt' or @unit='billion m3']/node()</xPath>
+            <comments/>
+        </supplyDemandQuery>
+        <supplyDemandQuery title="Beginning stock (supply)">
+            <axis1 name="technology">technology[@name]</axis1>
+            <axis2 name="Year">physical-output[@vintage]</axis2>
+            <xPath buildList="true" dataName="output" group="false" sumAll="false">*[@type='sector']/*[@type='subsector' and contains(@name, 'regional')]/*[@type='technology']/res-secondary-output[@type='output']/physical-output/node()</xPath>
+            <comments/>
+        </supplyDemandQuery>
+        <supplyDemandQuery title="food storage share-weights">
+            <axis1 name="technology">technology</axis1>
+            <axis2 name="Year">technology</axis2>
+            <xPath buildList="true" dataName="output" group="false" sumAll="false">*[@type='sector' and
+               (@name='regional corn')]/
                *[@type='subsector']/*[@type='technology']/share-weight/node()</xPath>
-    <comments/>
-</supplyDemandQuery>
-<supplyDemandQuery title="aggregate storage">
-    <axis1 name="technology">technology</axis1>
-    <axis2 name="Year">technology</axis2>
-    <xPath buildList="true" dataName="aggregate-storage" group="false" sumAll="false">*[@type='sector' and (@name='regional-corn')]/*[@type='subsector']/*[@type='technology']/aggregate-storage/text()</xPath>
-    <comments/>
-</supplyDemandQuery>
-
-
-</queryGroup>
+            <comments/>
+        </supplyDemandQuery>
+    </queryGroup>
     <queryGroup name="energy">
         <queryGroup name="primary energy">
             <supplyDemandQuery title="primary energy consumption by region (avg fossil efficiency)">
@@ -3634,14 +3645,14 @@ element input {
                     <level name="LandLeaf">
                         <rewrite from="Grassland" to="grass"/>
                         <rewrite from="ProtectedUnmanagedPasture" to="pasture (other)"/>
-                        <rewrite from="ProtectedGrassland" to="grass"/>
-                        <rewrite from="ProtectedUnmanagedForest" to="forest (unmanaged)"/>
-                        <rewrite from="OtherArableLand" to="otherarable"/>
                         <rewrite from="UrbanLand" to="urban"/>
                         <rewrite from="RockIceDesert" to="rock and desert"/>
                         <rewrite from="ProtectedShrubland" to="shrubs"/>
+                        <rewrite from="ProtectedGrassland" to="grass"/>
                         <rewrite from="UnmanagedForest" to="forest (unmanaged)"/>
+                        <rewrite from="ProtectedUnmanagedForest" to="forest (unmanaged)"/>
                         <rewrite from="Pasture" to="pasture (grazed)"/>
+                        <rewrite from="OtherArableLand" to="otherarable"/>
                         <rewrite from="Forest" to="forest (managed)"/>
                         <rewrite from="Shrubland" to="shrubs"/>
                         <rewrite from="UnmanagedPasture" to="pasture (other)"/>
@@ -4570,12 +4581,12 @@ local:generate-sector-output-coefs(remove($inputNameQueue, 1), $currTree, $coefs
                 <axis1 name="GHG">GHG</axis1>
                 <axis2 name="Year">emissions</axis2>
                 <xPath buildList="true" dataName="emissions" group="false" sumAll="false">*[@type = 'resource']//*[@type = 'GHG' and (@name = "CO2" or @name = "CO2_FUG")]/emissions/node()</xPath>
-				<labelRewriteList append-values="false">
+                <comments/>
+                <labelRewriteList append-values="false">
                     <level name="GHG">
                         <rewrite from="CO2_FUG" to="CO2"/>
                     </level>
                 </labelRewriteList>
-                <comments/>
             </emissionsQueryBuilder>
             <emissionsQueryBuilder title="CO2 sequestration by sector">
                 <axis1 name="sector">sector</axis1>
@@ -4597,12 +4608,12 @@ local:generate-sector-output-coefs(remove($inputNameQueue, 1), $currTree, $coefs
                 <axis2 name="Year">emissions</axis2>
                 <xPath buildList="true" dataName="emissions" group="false" sumAll="false">*[@type = 'sector' (:collapse:) or @type = 'resource' (:collapse:)](: / *[@type = 'subresource' (: collapse :)] :)//
             *[@type = 'GHG' and @name != 'CO2' and @name != 'CO2_FUG']/emissions/node()</xPath>
-				<labelRewriteList append-values="false">
+                <comments/>
+                <labelRewriteList append-values="false">
                     <level name="GHG">
                         <rewrite from="CO2_FUG" to="CO2"/>
                     </level>
                 </labelRewriteList>
-                <comments/>
             </emissionsQueryBuilder>
             <emissionsQueryBuilder title="nonCO2 emissions by sector (excluding resource production)">
                 <axis1 name="GHG">GHG</axis1>
@@ -4614,12 +4625,12 @@ local:generate-sector-output-coefs(remove($inputNameQueue, 1), $currTree, $coefs
                 <axis1 name="GHG">GHG</axis1>
                 <axis2 name="Year">emissions</axis2>
                 <xPath buildList="true" dataName="emissions" group="false" sumAll="false">*[@type = 'resource']//*[@type = 'GHG' and @name != 'CO2' and @name != 'CO2_FUG']/emissions/node()</xPath>
-				<labelRewriteList append-values="false">
+                <comments/>
+                <labelRewriteList append-values="false">
                     <level name="GHG">
                         <rewrite from="CO2_FUG" to="CO2"/>
                     </level>
                 </labelRewriteList>
-                <comments/>
             </emissionsQueryBuilder>
             <emissionsQueryBuilder title="nonCO2 emissions by subsector (excluding resource production)">
                 <axis1 name="GHG">GHG</axis1>
