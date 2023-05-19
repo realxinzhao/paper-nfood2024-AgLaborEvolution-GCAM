@@ -843,8 +843,19 @@ void XMLDBOutputter::startVisitTechnology( const Technology* aTechnology, const 
     }
     const AgStorageTechnology* agStorageTech = dynamic_cast <const AgStorageTechnology*> (mCurrentTechnology);
     if (agStorageTech) {
-        writeItemToBuffer(agStorageTech->mStoredValue, "aggregate-storage",
+        writeItemToBuffer(agStorageTech->mStoredValue, "closing-stock",
             *childBuffer, mTabs.get(), 0, mCurrentOutputUnit);
+
+        const Modeltime* modeltime = scenario->getModeltime();
+        int techYear = agStorageTech->getYear(); 
+        int techPeriod = modeltime->getyr_to_per(techYear);
+        double openStock = techPeriod <= modeltime->getFinalCalibrationPeriod() ? 
+            agStorageTech->mCarriedForwardValue : 
+            agStorageTech->mStoredValue * agStorageTech->mLossCoefficient;
+        
+        writeItemToBuffer(openStock, "opening-stock",
+            *childBuffer, mTabs.get(), 0, mCurrentOutputUnit);
+
     }
 }
 

@@ -128,10 +128,10 @@ void AgStorageTechnology::setProductionState(const int aPeriod) {
     const Modeltime* modeltime = scenario->getModeltime();
 
     if (aPeriod <= modeltime->getFinalCalibrationPeriod()) {
-        initialOutput = mCarriedForwardValue;
+        initialOutput = mCarriedForwardValue; // calibrated opening-stock
     }
     else {
-        initialOutput = mStoredValue * mLossCoefficient; 
+        initialOutput = mStoredValue * mLossCoefficient; //stored from last*loss
     }
 
     mProductionState[aPeriod] =
@@ -229,6 +229,18 @@ void AgStorageTechnology::production(const string& aRegionName,
 
         mOutputs[OutputPosition]->setPhysicalOutput(primaryOutput, aRegionName, mCaptureComponent, aPeriod);
     
+}
+
+/* agTechnologies are not shared on cost, so this calCost method is overwritten
+   by a calculation of technology profit which is passed to the land allocator
+   where it is used for sharing land.  */
+
+void AgStorageTechnology::calcCost(const string& aRegionName,
+    const string& aSectorName,
+    const int aPeriod)
+{
+    Technology::calcCost(aRegionName, aSectorName, aPeriod);
+    mCosts[aPeriod] /= mInputs[0]->getCoefficient(aPeriod);
 }
 
 //! write object to xml output stream

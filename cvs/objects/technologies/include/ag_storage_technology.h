@@ -99,6 +99,10 @@ public:
                              const GDP* aGDP,
                              const int aPeriod );
 
+    virtual void calcCost(const std::string& aRegionName,
+                          const std::string& aSectorName,
+                          const int aPeriod);
+
 
 protected:
     virtual void toDebugXMLDerived( const int aPeriod, std::ostream& aout, Tabs* aTabs ) const;
