@@ -171,7 +171,6 @@ void AgStorageTechnology::production(const string& aRegionName,
     const string& aSectorName,
     double aVariableDemand,
     double aFixedOutputScaleFactor,
-    const GDP* aGDP,
     const int aPeriod)
 {
     int OutputPosition;
