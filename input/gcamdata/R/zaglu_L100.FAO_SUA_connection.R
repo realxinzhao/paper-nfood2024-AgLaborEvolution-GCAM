@@ -21,6 +21,7 @@ module_aglu_L100.FAO_SUA_connection <- function(command, ...) {
       FILE = "aglu/FAO/FAO_ag_items_PRODSTAT",
       FILE = "aglu/FAO/FAO_an_items_PRODSTAT",
       "GCAM_AgLU_SUA_APE_1973_2019",
+      "GCAM_APE_AgStorage",
       "FAO_AgProd_Kt_All",
       "FAO_AgArea_Kha_All",
       "FAO_Food_Macronutrient_All_2010_2019",
@@ -37,7 +38,8 @@ module_aglu_L100.FAO_SUA_connection <- function(command, ...) {
       "L105.an_Food_Mt_R_C_Y",
       "L101.CropMeat_Food_Pcal_R_C_Y",
       "L101.ag_Feed_Mt_R_C_Y",
-      "L1091.GrossTrade_Mt_R_C_Y")
+      "L1091.GrossTrade_Mt_R_C_Y",
+      "L100.ag_Storage_Mt_R_C_Y")
 
   if(command == driver.DECLARE_INPUTS) {
     return(MODULE_INPUTS)
@@ -304,6 +306,20 @@ module_aglu_L100.FAO_SUA_connection <- function(command, ...) {
       spread(element, value) %>%
       rename(GrossExp_Mt = Export, GrossImp_Mt = Import)
 
+    # 5. Ag storage ----
+
+    L100.ag_Storage_Mt_R_C_Y <-
+      GCAM_APE_AgStorage %>%
+      # change unit to Mt
+      mutate(value = value / 1000) %>% select(-unit) %>%
+      # Adding 5-year moving average here
+      dplyr::group_by_at(dplyr::vars(-year, -value)) %>%
+      mutate(moving_avg = Moving_average(value, periods = aglu.MODEL_MEAN_PERIOD_LENGTH)) %>%
+      ungroup() %>%
+      mutate(value = if_else(is.na(moving_avg), value, moving_avg)) %>%
+      select(-moving_avg) %>%
+      filter(year %in% aglu.AGLU_HISTORICAL_YEARS) %>%
+      filter(element %in% c("Closing stocks", "Opening stocks"))
 
 
     # Produce outputs ----
@@ -407,6 +423,15 @@ module_aglu_L100.FAO_SUA_connection <- function(command, ...) {
       add_legacy_name("L1091.GrossTrade_Mt_R_C_Y") %>%
       add_precursors("GCAM_AgLU_SUA_APE_1973_2019") ->
       L1091.GrossTrade_Mt_R_C_Y
+
+    L100.ag_Storage_Mt_R_C_Y %>%
+      add_title("Ag storage by GCAM region, commodity, and year aggregated from FAO") %>%
+      add_comments("Balanced element in SUA for GCAM Ag commodities") %>%
+      add_units("Mt") %>%
+      add_legacy_name("L100.ag_Storage_Mt_R_C_Y") %>%
+      add_precursors("GCAM_APE_AgStorage") ->
+      L100.ag_Storage_Mt_R_C_Y
+
 
     # Done & return data----
     return_data(MODULE_OUTPUTS)

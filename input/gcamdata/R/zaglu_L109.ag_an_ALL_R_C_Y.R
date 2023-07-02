@@ -26,7 +26,8 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
       "L108.ag_Feed_Mt_R_C_Y",
       "L108.ag_NetExp_Mt_R_FodderHerb_Y",
       "L122.in_Mt_R_C_Yh",
-      "L1091.GrossTrade_Mt_R_C_Y")
+      "L1091.GrossTrade_Mt_R_C_Y",
+      "L100.ag_Storage_Mt_R_C_Y")
 
   MODULE_OUTPUTS <-
     c("L109.ag_ALL_Mt_R_C_Y",
@@ -58,6 +59,10 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
     # Stock variation is not included here yet!
     # Here, when other use is negative, net trade is adjusted
     # There will be concerns on primary vs. secondary trade and trade within or across aggregated regions.
+
+    # COMM_STORAGE <- c("Corn")
+    # #L100.ag_Storage_Mt_R_C_Y %>% filter(GCAM_commodity %in% COMM_STORAGE) %>% filter(year == 2015)
+    # L109.ag_ALL_Mt_R_C_Y %>% filter(year == 2015)
 
     # List of commodities in production table ----
     L101.ag_Prod_Mt_R_C_Y %>%
