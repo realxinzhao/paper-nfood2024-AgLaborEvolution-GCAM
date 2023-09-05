@@ -21,13 +21,13 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
   MODULE_INPUTS <-
     c("L101.ag_Food_Mt_R_C_Y",
       "L101.ag_Prod_Mt_R_C_Y",
-      "L105.an_Food_Mt_R_C_Y",
-      "L105.an_Prod_Mt_R_C_Y",
+      "L101.an_Food_Mt_R_C_Y",
+      "L101.an_Prod_Mt_R_C_Y",
       "L108.ag_Feed_Mt_R_C_Y",
       "L108.ag_NetExp_Mt_R_FodderHerb_Y",
       "L122.in_Mt_R_C_Yh",
-      "L1091.GrossTrade_Mt_R_C_Y",
-      "L100.ag_Storage_Mt_R_C_Y")
+      "L101.GrossTrade_Mt_R_C_Y",
+      "L101.ag_Storage_Mt_R_C_Y")
 
   MODULE_OUTPUTS <-
     c("L109.ag_ALL_Mt_R_C_Y",
@@ -74,7 +74,7 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
       pull(GCAM_commodity) %>%
       unique() -> Feed_commodities
 
-    L105.an_Prod_Mt_R_C_Y %>%
+    L101.an_Prod_Mt_R_C_Y %>%
       pull(GCAM_commodity) %>%
       unique() -> Meat_commodities
 
@@ -82,7 +82,7 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
 
     ## Combine all flow tables ----
 
-  L1091.GrossTrade_Mt_R_C_Y %>%
+  L101.GrossTrade_Mt_R_C_Y %>%
     filter(GCAM_commodity %in% Primary_commodities) %>%
     mutate(NetExp_Mt = GrossExp_Mt - GrossImp_Mt) %>%
     gather(flow, value, -GCAM_region_ID, -GCAM_commodity, -year) %>%
@@ -228,12 +228,12 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
     ## Combine all flow tables ----
 
     # Name the flows in each table
-    L1091.GrossTrade_Mt_R_C_Y %>%
+    L101.GrossTrade_Mt_R_C_Y %>%
       filter(GCAM_commodity %in% Meat_commodities) %>%
       mutate(NetExp_Mt = GrossExp_Mt - GrossImp_Mt) %>%
       gather(flow, value, -GCAM_region_ID, -GCAM_commodity, -year) %>%
-      bind_rows(mutate(L105.an_Prod_Mt_R_C_Y, flow = "Prod_Mt")) %>%
-      bind_rows(mutate(L105.an_Food_Mt_R_C_Y, flow = "Food_Mt")) %>%
+      bind_rows(mutate(L101.an_Prod_Mt_R_C_Y, flow = "Prod_Mt")) %>%
+      bind_rows(mutate(L101.an_Food_Mt_R_C_Y, flow = "Food_Mt")) %>%
       spread(flow, value) %>%
       filter(year %in% aglu.AGLU_HISTORICAL_YEARS) %>%
       # Set missing values in the complete combinations to zero
@@ -367,7 +367,7 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
                      "L108.ag_Feed_Mt_R_C_Y",
                      "L108.ag_NetExp_Mt_R_FodderHerb_Y",
                      "L122.in_Mt_R_C_Yh",
-                     "L1091.GrossTrade_Mt_R_C_Y"
+                     "L101.GrossTrade_Mt_R_C_Y"
                      ) ->
       L109.ag_ALL_Mt_R_C_Y
 
@@ -377,9 +377,9 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
       add_comments("Calculate animal product mass balances by GCAM region, commodity and year") %>%
       add_comments("Adjusts global and regional net exports to remove net negative other uses") %>%
       add_legacy_name("L109.an_ALL_Mt_R_C_Y") %>%
-      add_precursors("L105.an_Food_Mt_R_C_Y",
-                     "L105.an_Prod_Mt_R_C_Y",
-                     "L1091.GrossTrade_Mt_R_C_Y") ->
+      add_precursors("L101.an_Food_Mt_R_C_Y",
+                     "L101.an_Prod_Mt_R_C_Y",
+                     "L101.GrossTrade_Mt_R_C_Y") ->
       L109.an_ALL_Mt_R_C_Y
 
     return_data(MODULE_OUTPUTS)

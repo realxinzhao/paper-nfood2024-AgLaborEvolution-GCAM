@@ -24,7 +24,9 @@ module_aglu_ag_trade_xml <- function(command, ...) {
       "L240.TechShrwt_reg",
       "L240.TechCoef_reg",
       "L240.Production_reg_imp",
-      "L240.Production_reg_dom")
+      "L240.Production_reg_dom",
+      FILE = "common/GCAM_region_names",
+      "L101.ag_Storage_Mt_R_C_Y")
 
   MODULE_OUTPUTS <-
     c(XML = "ag_trade.xml")
@@ -44,7 +46,7 @@ module_aglu_ag_trade_xml <- function(command, ...) {
 
 
     # temporary changes for ag storage testing (XZ 2023; will remove later)
-    MODULE_INPUTS_AdjustUSRegionalCorn <-
+    MODULE_INPUTS_AdjustUSRegional <-
               c("L240.Supplysector_reg",
               "L240.SubsectorAll_reg",
               "L240.TechShrwt_reg",
@@ -52,10 +54,42 @@ module_aglu_ag_trade_xml <- function(command, ...) {
               "L240.Production_reg_imp",
               "L240.Production_reg_dom")
 
-    lapply(MODULE_INPUTS_AdjustUSRegionalCorn, function(df){
+    # careful with root_tuber
+    #COMM_STORAGE <- c("Corn", "Wheat", "Rice", "RootTuber", "OtherGrain", "root_tuber")
+    COMM_STORAGE <- c("Corn",  "Legumes", "MiscCrop", "NutsSeeds",
+                      "OilCrop", "OtherGrain", "OilPalm", "Rice", "RootTuber", "Soybean",
+                      "SugarCrop",  "Wheat", "FiberCrop", "root_tuber", "nuts_seeds") # "Fruits", "Vegetables",
+
+    # COMM_STORAGE <- c("Corn", "Wheat", "Rice", "RootTuber", "OtherGrain", "NutsSeeds",
+    #                   "OilCrop", "Legumes")
+    # COMM_STORAGE <- c("Corn", "Wheat", "Rice", "RootTuber", "OtherGrain", "root_tuber")
+
+    COMM_STORAGE <- c("FiberCrop")
+
+
+    COMM_STORAGE <- c("Corn",  "Legumes", "MiscCrop", "NutsSeeds",
+                      "OilCrop", "OtherGrain", "OilPalm", "Rice", "RootTuber", "Soybean",
+                      "SugarCrop",  "Wheat", "FiberCrop", "root_tuber", "nuts_seeds", "Fruits", "Vegetables",
+                      "Beef",  "Dairy", "Pork", "Poultry", "SheepGoat")
+
+    COMM_STORAGE <- c("Corn")
+
+    L101.ag_Storage_Mt_R_C_Y %>%
+      left_join_error_no_match(GCAM_region_names, by = "GCAM_region_ID") %>%
+      select(-GCAM_region_ID) %>%
+      filter(GCAM_commodity %in% COMM_STORAGE) %>%
+      filter(year %in% 2015) %>% filter(element == "Closing stocks") %>%
+      dplyr::transmute(region, supplysector = paste0("total ", tolower(GCAM_commodity)), value) %>%
+      mutate(supplysector = if_else(supplysector == "total roottuber", "total root_tuber", supplysector),
+             supplysector = if_else(supplysector == "total nutsseeds", "total nuts_seeds", supplysector)) %>%
+      mutate(value = if_else(value == 0, 0.001, value)) ->
+      AgStock
+
+
+    lapply(MODULE_INPUTS_AdjustUSRegional, function(df){
       get(df) %>%
-        mutate(supplysector = if_else(region == "USA" & supplysector == "regional corn",
-                                      "total corn", supplysector)) ->
+        mutate(supplysector = if_else(supplysector %in%  paste0("regional ", tolower(COMM_STORAGE)),
+                                      gsub("regional", "total", supplysector), supplysector)) ->
         data
 
       assign(df, data, envir = parent.env(environment()))
@@ -63,10 +97,12 @@ module_aglu_ag_trade_xml <- function(command, ...) {
     })
 
     # update domestic corn for testing
-    L240.Production_reg_dom %>% filter(supplysector == "total corn") %>%
-      mutate(calOutputValue = calOutputValue + 10) %>%
+    L240.Production_reg_dom %>% filter(supplysector %in%  paste0("total ", tolower(COMM_STORAGE))) %>%
+      left_join_error_no_match(AgStock, by = c("region", "supplysector")) %>%
+      mutate(calOutputValue = calOutputValue + value) %>%
+      select(-value) %>%
       bind_rows(
-        L240.Production_reg_dom %>% filter(supplysector != "total corn")
+        L240.Production_reg_dom %>% filter(!supplysector %in%  paste0("total ", tolower(COMM_STORAGE)))
       ) ->
       L240.Production_reg_dom
 

@@ -21,7 +21,6 @@ module_aglu_L100.FAO_SUA_connection <- function(command, ...) {
       FILE = "aglu/FAO/FAO_ag_items_PRODSTAT",
       FILE = "aglu/FAO/FAO_an_items_PRODSTAT",
       "GCAM_AgLU_SUA_APE_1973_2019",
-      "GCAM_APE_AgStorage",
       "FAO_AgProd_Kt_All",
       "FAO_AgArea_Kha_All",
       "FAO_Food_Macronutrient_All_2010_2019",
@@ -32,14 +31,14 @@ module_aglu_L100.FAO_SUA_connection <- function(command, ...) {
       "L100.FAO_ag_HA_ha",
       "L100.FAO_ag_Prod_t",
       "L100.FAO_PRODSTAT_TO_DOWNSCAL",
-      "L105.an_Prod_Mt_R_C_Y",
-      "L105.an_Prod_Mt_ctry_C_Y",
+      "L101.an_Prod_Mt_R_C_Y",
+      "L101.an_Prod_Mt_ctry_C_Y",
       "L101.ag_Food_Mt_R_C_Y",
-      "L105.an_Food_Mt_R_C_Y",
+      "L101.an_Food_Mt_R_C_Y",
       "L101.CropMeat_Food_Pcal_R_C_Y",
       "L101.ag_Feed_Mt_R_C_Y",
-      "L1091.GrossTrade_Mt_R_C_Y",
-      "L100.ag_Storage_Mt_R_C_Y")
+      "L101.GrossTrade_Mt_R_C_Y",
+      "L101.ag_Storage_Mt_R_C_Y")
 
   if(command == driver.DECLARE_INPUTS) {
     return(MODULE_INPUTS)
@@ -156,8 +155,8 @@ module_aglu_L100.FAO_SUA_connection <- function(command, ...) {
 
     ## 2.2. Livestock Production ----
 
-    ##* L105.an_Prod_Mt_ctry_C_Y ----
-    L105.an_Prod_Mt_ctry_C_Y <-
+    ##* L101.an_Prod_Mt_ctry_C_Y ----
+    L101.an_Prod_Mt_ctry_C_Y <-
       FAO_AgProd_Kt_All %>%
       filter(CropMeat %in% c("Meat")) %>%
       # complete year and fill zeros
@@ -179,15 +178,15 @@ module_aglu_L100.FAO_SUA_connection <- function(command, ...) {
       # change unit to Mt
       mutate(value = value / 1000)
 
-    ##* L105.an_Prod_Mt_R_C_Y ----
-    L105.an_Prod_Mt_R_C_Y <-
-      L105.an_Prod_Mt_ctry_C_Y %>%
+    ##* L101.an_Prod_Mt_R_C_Y ----
+    L101.an_Prod_Mt_R_C_Y <-
+      L101.an_Prod_Mt_ctry_C_Y %>%
         group_by(GCAM_region_ID, GCAM_commodity, year) %>%
         summarise(value = sum(value), .groups = "drop") %>%
         ungroup()
 
     assertthat::assert_that(
-      L105.an_Prod_Mt_R_C_Y %>%
+      L101.an_Prod_Mt_R_C_Y %>%
         left_join(
           L100.FAO_SUA_APE_balance %>%
             filter(element == "Production") %>%
@@ -197,7 +196,7 @@ module_aglu_L100.FAO_SUA_connection <- function(command, ...) {
           by = c("GCAM_region_ID", "GCAM_commodity", "year")) %>%
         mutate(diff = abs(value1- value)) %>%
         filter(diff > 0.00001) %>% nrow() == 0,
-      msg = "Inconsistency between L100.FAO_SUA_APE_balance and L105.an_Prod_Mt_R_C_Y"
+      msg = "Inconsistency between L100.FAO_SUA_APE_balance and L101.an_Prod_Mt_R_C_Y"
     )
 
 
@@ -277,8 +276,8 @@ module_aglu_L100.FAO_SUA_connection <- function(command, ...) {
       filter(GCAM_commodity %in% COMM_CROP) %>%
       transmute(GCAM_region_ID, GCAM_commodity, year, value = Mt)
 
-    ##* L105.an_Food_Mt_R_C_Y ----
-    L105.an_Food_Mt_R_C_Y <-
+    ##* L101.an_Food_Mt_R_C_Y ----
+    L101.an_Food_Mt_R_C_Y <-
       DF_Macronutrient_FoodItem4 %>%
       filter(GCAM_commodity %in% COMM_MEAT) %>%
       transmute(GCAM_region_ID, GCAM_commodity, year, value = Mt)
@@ -299,27 +298,65 @@ module_aglu_L100.FAO_SUA_connection <- function(command, ...) {
       filter(GCAM_commodity %in% COMM_CROP) %>%
       select(-element)
 
-    ##* L1091.GrossTrade_Mt_R_C_Y ----
+    ##* L101.GrossTrade_Mt_R_C_Y ----
     # Including both ag and an
-    L1091.GrossTrade_Mt_R_C_Y <-
+    L101.GrossTrade_Mt_R_C_Y <-
       L100.FAO_SUA_APE_balance %>% filter(element %in% c("Export", "Import")) %>%
       spread(element, value) %>%
       rename(GrossExp_Mt = Export, GrossImp_Mt = Import)
 
-    # 5. Ag storage ----
+    # 5. Ag post-harvest storage loss rate and Ag storage ----
 
-    L100.ag_Storage_Mt_R_C_Y <-
-      GCAM_APE_AgStorage %>%
-      # change unit to Mt
-      mutate(value = value / 1000) %>% select(-unit) %>%
-      # Adding 5-year moving average here
-      dplyr::group_by_at(dplyr::vars(-year, -value)) %>%
-      mutate(moving_avg = Moving_average(value, periods = aglu.MODEL_MEAN_PERIOD_LENGTH)) %>%
-      ungroup() %>%
-      mutate(value = if_else(is.na(moving_avg), value, moving_avg)) %>%
-      select(-moving_avg) %>%
-      filter(year %in% aglu.AGLU_HISTORICAL_YEARS) %>%
-      filter(element %in% c("Closing stocks", "Opening stocks"))
+    # For estimating loss rate, it could be complicated due to trade
+    # E.g., Japan has large loss-to-production ratio due the loss of imported storage
+    # For net importers it is more reasonable to use loss-to-consumption ratio
+    # similarly, it is more reasonable to use loss-to-production ratio for net exporters
+    # Note that the goal here is to estimate a loss ratio to be applied to ending stock
+    # and this loss is only inter-annual stock loss, which is a portion of post-harvest loss.
+
+    L100.FAO_SUA_APE_balance %>%
+      filter(element %in% c("Production", "Loss", "Net_Export")) %>%
+      spread(element, value) %>%
+      mutate(Consumption = Production - Net_Export,
+             LossRate_Prod = Loss / Production,
+             LossRate_Cons = Loss / Consumption ) %>%
+      mutate(LossRate = if_else(Net_Export >= 0, LossRate_Prod, LossRate_Cons)) %>%
+      select(GCAM_commodity, GCAM_region_ID, year, LossRate, Consumption) ->
+      L101.LossRate
+
+
+    # Another problem is data quality. E.g., Brazil has zero loss;
+    # Other regions may have loss values that are unrealistically small
+
+    # Calculate world loss rate using commodity and region with positive loss values
+    L100.FAO_SUA_APE_balance %>%
+      filter(element %in% c("Production", "Loss")) %>%
+      spread(element, value) %>% filter(Loss > 0) %>%
+      group_by(GCAM_commodity, year) %>%
+      summarise(LossRateWorld = sum(Loss) / sum(Production), .groups = "drop") %>%
+      # safeguard complete year and filling in missing
+      complete(GCAM_commodity, year, fill = list(LossRateWorld = NA)) %>%
+      group_by(GCAM_commodity) %>%
+      fill(LossRateWorld, .direction = "downup") %>%
+      ungroup() ->
+      L101.LossRateWorld
+
+    # Use world value to replace NA or zero
+    # Also consumption may have negative values (adjusted later)
+    # But set loss to zero for those
+    L101.LossRate %>%
+      left_join_error_no_match(L101.LossRateWorld,
+                               by = c("GCAM_commodity", "year")) %>%
+      mutate(LossRate = if_else(is.na(LossRate) | LossRate <= 0, LossRateWorld, LossRate),
+             LossRate = if_else(Consumption <= 10e-05, 0, LossRate)) %>%
+      select(GCAM_commodity, GCAM_region_ID,  year, value = LossRate) %>%
+      mutate(element = "StorageLossRate")->
+      L101.StorageLossRate
+
+    L100.FAO_SUA_APE_balance %>%
+      filter(element %in% c("Closing stocks", "Opening stocks", "Stock Variation")) %>%
+      bind_rows(L101.StorageLossRate) ->
+      L101.ag_Storage_Mt_R_C_Y
 
 
     # Produce outputs ----
@@ -354,23 +391,23 @@ module_aglu_L100.FAO_SUA_connection <- function(command, ...) {
                      "FAO_AgArea_Kha_All") ->
       L100.FAO_PRODSTAT_TO_DOWNSCAL
 
-    L105.an_Prod_Mt_R_C_Y %>%
+    L101.an_Prod_Mt_R_C_Y %>%
       add_title("Animal production by GCAM region / commodity / year") %>%
       add_units("Mt") %>%
       add_comments("Aggregate FAO country and item data by GCAM region commodity, and year") %>%
       add_comments("Convert data from ton to Mt") %>%
-      add_legacy_name("L105.an_Prod_Mt_R_C_Y") %>%
+      add_legacy_name("L101.an_Prod_Mt_R_C_Y") %>%
       add_precursors("FAO_AgProd_Kt_All") ->
-      L105.an_Prod_Mt_R_C_Y
+      L101.an_Prod_Mt_R_C_Y
 
-    L105.an_Prod_Mt_ctry_C_Y %>%
+    L101.an_Prod_Mt_ctry_C_Y %>%
       add_title("Animal production by country / commodity / year") %>%
       add_units("Mt") %>%
       add_comments("Aggregate FAO country and item data by GCAM commodity, and year") %>%
       add_comments("Convert data from ton to Mt") %>%
-      add_legacy_name("L105.an_Prod_Mt_ctry_C_Y") %>%
+      add_legacy_name("L101.an_Prod_Mt_ctry_C_Y") %>%
       add_precursors("FAO_AgProd_Kt_All") ->
-      L105.an_Prod_Mt_ctry_C_Y
+      L101.an_Prod_Mt_ctry_C_Y
 
 
     L101.ag_Food_Mt_R_C_Y %>%
@@ -394,18 +431,18 @@ module_aglu_L100.FAO_SUA_connection <- function(command, ...) {
       same_precursors_as(L101.ag_Food_Mt_R_C_Y) ->
       L101.CropMeat_Food_Pcal_R_C_Y
 
-    L105.an_Food_Mt_R_C_Y %>%
+    L101.an_Food_Mt_R_C_Y %>%
       add_title("Animal consumption by GCAM region / commodity / year") %>%
       add_units("Mt") %>%
       add_comments("Aggregate FAO country and item data by GCAM region, commodity, and year") %>%
       add_comments("Convert data from ton to Mt") %>%
-      add_legacy_name("L105.an_Food_Mt_R_C_Y") %>%
+      add_legacy_name("L101.an_Food_Mt_R_C_Y") %>%
       add_precursors("common/GCAM_region_names",
                      "GCAM_AgLU_SUA_APE_1973_2019",
                      "aglu/FAO/FAO_an_items_PRODSTAT",
                      "FAO_Food_Macronutrient_All_2010_2019",
                      "FAO_Food_MacronutrientRate_2010_2019_MaxValue") ->
-      L105.an_Food_Mt_R_C_Y
+      L101.an_Food_Mt_R_C_Y
 
     L101.ag_Feed_Mt_R_C_Y %>%
       add_title("Feed use by GCAM region, commodity, and year aggregated from FAO") %>%
@@ -416,21 +453,21 @@ module_aglu_L100.FAO_SUA_connection <- function(command, ...) {
                      "aglu/FAO/FAO_ag_items_PRODSTAT") ->
       L101.ag_Feed_Mt_R_C_Y
 
-    L1091.GrossTrade_Mt_R_C_Y %>%
+    L101.GrossTrade_Mt_R_C_Y %>%
       add_title("Gross trade by GCAM region, commodity, and year aggregated from FAO") %>%
       add_comments("Balanced gross trade of GCAM Ag commodities") %>%
       add_units("Mt") %>%
-      add_legacy_name("L1091.GrossTrade_Mt_R_C_Y") %>%
+      add_legacy_name("L101.GrossTrade_Mt_R_C_Y") %>%
       add_precursors("GCAM_AgLU_SUA_APE_1973_2019") ->
-      L1091.GrossTrade_Mt_R_C_Y
+      L101.GrossTrade_Mt_R_C_Y
 
-    L100.ag_Storage_Mt_R_C_Y %>%
-      add_title("Ag storage by GCAM region, commodity, and year aggregated from FAO") %>%
+    L101.ag_Storage_Mt_R_C_Y %>%
+      add_title("Ag storage and loss by GCAM region, commodity, and year aggregated from FAO") %>%
       add_comments("Balanced element in SUA for GCAM Ag commodities") %>%
       add_units("Mt") %>%
-      add_legacy_name("L100.ag_Storage_Mt_R_C_Y") %>%
-      add_precursors("GCAM_APE_AgStorage") ->
-      L100.ag_Storage_Mt_R_C_Y
+      add_legacy_name("L101.ag_Storage_Mt_R_C_Y") %>%
+      add_precursors("GCAM_AgLU_SUA_APE_1973_2019") ->
+      L101.ag_Storage_Mt_R_C_Y
 
 
     # Done & return data----
