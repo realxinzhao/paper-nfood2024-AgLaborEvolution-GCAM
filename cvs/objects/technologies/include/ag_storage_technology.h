@@ -112,9 +112,9 @@ protected:
         Technology,
 
         //! Amount carried forward from one model period to the next 
-        DEFINE_VARIABLE( SIMPLE, "carried-forward", mCarriedForwardValue, Value ),
+        DEFINE_VARIABLE( SIMPLE, "opening-stock", mOpeningStock, Value ),
         // Expected price of food crop
-        DEFINE_VARIABLE(SIMPLE | NOT_PARSABLE, "expected-price", mExpectedPrice, Value),
+        DEFINE_VARIABLE(SIMPLE | NOT_PARSABLE, "expected-price", mAdjExpectedPrice, Value),
         //initial amount of crop in storage
         DEFINE_VARIABLE(SIMPLE, "closing-stock", mClosingStock, Value),
         //
@@ -126,7 +126,10 @@ protected:
     
         DEFINE_VARIABLE(SIMPLE | STATE | NOT_PARSABLE, "consumption", mConsumption, Value),
 
-        DEFINE_VARIABLE(SIMPLE | STATE | NOT_PARSABLE, "total", mTotal, Value)
+        DEFINE_VARIABLE(SIMPLE | STATE | NOT_PARSABLE, "total", mTotal, Value),
+
+        // Storage Cost 
+        DEFINE_VARIABLE(SIMPLE, "storage-cost", mStorageCost, Value)
     )
     
     void copy( const AgStorageTechnology& aOther );

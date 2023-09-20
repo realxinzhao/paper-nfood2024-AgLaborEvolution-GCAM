@@ -46,6 +46,7 @@
 #include "containers/include/scenario.h"
 #include "marketplace/include/marketplace.h"
 #include "containers/include/iinfo.h"
+#include "util/logger/include/ilogger.h"
 #include "util/base/include/xml_helper.h"
 #include "containers/include/market_dependency_finder.h"
 #include "technologies/include/iproduction_state.h"
@@ -127,8 +128,9 @@ void AgStorageTechnology::setProductionState(const int aPeriod) {
     double initialOutput = 0;
     const Modeltime* modeltime = scenario->getModeltime();
 
+    // initialOutput is only used when technology is "vintaged" and is ignored when it's a new invest
     if (aPeriod <= modeltime->getFinalCalibrationPeriod()) {
-        initialOutput = mCarriedForwardValue; // calibrated opening-stock
+        initialOutput = mOpeningStock; // calibrated opening-stock
     }
     else {
         initialOutput = mStoredValue * mLossCoefficient; //stored from last*loss
@@ -150,10 +152,11 @@ void AgStorageTechnology::initCalc(const string& aRegionName,
     Technology::initCalc(aRegionName, aSectorName, aSubsectorInfo, aDemographics, aPrevPeriodInfo, aPeriod);
 
     if (aPeriod > 0) {
-        mExpectedPrice = scenario->getMarketplace()->getPrice(aSectorName, aRegionName, aPeriod-1);
+        //mExpectedPrice = scenario->getMarketplace()->getPrice(aSectorName, aRegionName, aPeriod-1);
+        mAdjExpectedPrice = (scenario->getMarketplace()->getPrice(aSectorName, aRegionName, aPeriod - 1) - mStorageCost) * mLossCoefficient;
     }
     else {
-        mExpectedPrice = 1;
+        mAdjExpectedPrice = 1;
     }
 }
 
@@ -185,12 +188,23 @@ void AgStorageTechnology::production(const string& aRegionName,
             mConsumption = 1;
         }
         if (aPeriod <= modeltime->getFinalCalibrationPeriod()) {  
-            mShareWeight = mClosingStock / ((pow(mExpectedPrice / mInputs[0]->getPrice(aRegionName, aPeriod), mLogitExponent)) * mConsumption);
-        }
+            if (mClosingStock == 0) {
+                mShareWeight = 0;
+            }
+            else if (mConsumption == 0) {
+                mShareWeight = 0;
+                ILogger& mainLog = ILogger::getLogger("main_log");
+                mainLog.setLevel(ILogger::WARNING);
+                mainLog << "No consumption and positive closing stock in " << aRegionName << " " << mName << endl;
+            }
+            else {
+                mShareWeight = mClosingStock / ((pow(mAdjExpectedPrice / mInputs[0]->getPrice(aRegionName, aPeriod), mLogitExponent)) * mConsumption);
+            }
+         }
 
-        mStoredValue = mShareWeight * (pow(mExpectedPrice / mInputs[0]->getPrice(aRegionName, aPeriod), mLogitExponent))* mConsumption;
+        mStoredValue = mShareWeight * (pow(mAdjExpectedPrice / mInputs[0]->getPrice(aRegionName, aPeriod), mLogitExponent))* mConsumption;
         double total = mStoredValue + mConsumption;
-        double totalToVariableRatio = total / mConsumption;
+        double totalToVariableRatio = total == 0?1.0 : total / mConsumption;
         mInputs[0]->setCoefficient(totalToVariableRatio, aPeriod);
 
         mTotal = total;
@@ -245,7 +259,7 @@ void AgStorageTechnology::calcCost(const string& aRegionName,
 //! write object to xml output stream
 void AgStorageTechnology::toDebugXMLDerived( const int aPeriod, ostream& aOut, Tabs* aTabs ) const {
     XMLWriteElement(mStoredValue, "stored-value", aOut, aTabs);
-    XMLWriteElement(mExpectedPrice, "expected-price", aOut, aTabs);
+    XMLWriteElement(mAdjExpectedPrice, "expected-price", aOut, aTabs);
     XMLWriteElement(mConsumption, "consumption", aOut, aTabs);
     XMLWriteElement(mClosingStock, "closing-stock", aOut, aTabs);
     XMLWriteElement(mTotal, "total-supply", aOut, aTabs);
