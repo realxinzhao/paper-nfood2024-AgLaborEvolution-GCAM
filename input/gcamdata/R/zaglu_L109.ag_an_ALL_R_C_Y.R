@@ -51,6 +51,7 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
     get_data_list(all_data, MODULE_INPUTS, strip_attributes = TRUE)
 
 
+
     # This chunk will adjust bioenergy feedstock and also feed demand using others
     # There will be some assumptions needed
     # New balance
@@ -78,6 +79,20 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
       pull(GCAM_commodity) %>%
       unique() -> Meat_commodities
 
+    # Storage is separated only for aglu.STORAGE_COMMODITIES defined
+    # commodities not in aglu.STORAGE_COMMODITIES will have zero opening and closing stock
+    # so stock variation is still in "other use"
+
+    aglu.STORAGE_COMMODITIES <-
+      c("Corn",  "Legumes", "MiscCrop", "NutsSeeds",
+      "OilCrop", "OtherGrain", "OilPalm", "Rice", "RootTuber", "Soybean",
+      "SugarCrop",  "Wheat", "FiberCrop")  # "Fruits", "Vegetables",
+
+    aglu.STORAGE_COMMODITIES <- L101.ag_Storage_Mt_R_C_Y %>% distinct(GCAM_commodity) %>% pull
+
+    aglu.STORAGE_COMMODITIES <-
+      c("Corn")
+
     # Part 1: Primary agricultural goods ----
 
     ## Combine all flow tables ----
@@ -92,6 +107,9 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
       bind_rows(mutate(L101.ag_Food_Mt_R_C_Y, flow = "Food_Mt")) %>%
       bind_rows(mutate(L108.ag_Feed_Mt_R_C_Y, flow = "Feed_Mt")) %>%
       bind_rows(mutate(L122.in_Mt_R_C_Yh, flow = "Biofuels_Mt")) %>%
+      bind_rows(L101.ag_Storage_Mt_R_C_Y %>% rename(flow = element) %>%
+                  filter(GCAM_commodity %in% Primary_commodities,
+                         GCAM_commodity %in% aglu.STORAGE_COMMODITIES )) %>%
       # Get all combinations of each GCAM_commodity and flow, by spreading to wide format
       spread(flow, value) %>%
       # adjust for feedherb
@@ -107,7 +125,7 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
              # Calculate the domestic supply
              Supply_Mt = Prod_Mt - NetExp_Mt,
              # Calculate other uses
-             OtherUses_Mt = Supply_Mt - Food_Mt - Feed_Mt - Biofuels_Mt)  ->
+             OtherUses_Mt = Supply_Mt - Food_Mt - Feed_Mt - Biofuels_Mt - `Stock Variation`)  ->
     L109.ag_ALL_Mt_R_C_Y
 
   ## Adjust negative crop feed use using other use ----
@@ -234,6 +252,9 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
       gather(flow, value, -GCAM_region_ID, -GCAM_commodity, -year) %>%
       bind_rows(mutate(L101.an_Prod_Mt_R_C_Y, flow = "Prod_Mt")) %>%
       bind_rows(mutate(L101.an_Food_Mt_R_C_Y, flow = "Food_Mt")) %>%
+      bind_rows(L101.ag_Storage_Mt_R_C_Y %>% rename(flow = element) %>%
+                  filter(GCAM_commodity %in% Meat_commodities,
+                         GCAM_commodity %in% aglu.STORAGE_COMMODITIES)) %>%
       spread(flow, value) %>%
       filter(year %in% aglu.AGLU_HISTORICAL_YEARS) %>%
       # Set missing values in the complete combinations to zero

@@ -60,13 +60,6 @@ module_aglu_ag_trade_xml <- function(command, ...) {
                       "OilCrop", "OtherGrain", "OilPalm", "Rice", "RootTuber", "Soybean",
                       "SugarCrop",  "Wheat", "FiberCrop", "root_tuber", "nuts_seeds") # "Fruits", "Vegetables",
 
-    # COMM_STORAGE <- c("Corn", "Wheat", "Rice", "RootTuber", "OtherGrain", "NutsSeeds",
-    #                   "OilCrop", "Legumes")
-    # COMM_STORAGE <- c("Corn", "Wheat", "Rice", "RootTuber", "OtherGrain", "root_tuber")
-
-    COMM_STORAGE <- c("FiberCrop")
-
-
     COMM_STORAGE <- c("Corn",  "Legumes", "MiscCrop", "NutsSeeds",
                       "OilCrop", "OtherGrain", "OilPalm", "Rice", "RootTuber", "Soybean",
                       "SugarCrop",  "Wheat", "FiberCrop", "root_tuber", "nuts_seeds", "Fruits", "Vegetables",
@@ -78,8 +71,8 @@ module_aglu_ag_trade_xml <- function(command, ...) {
       left_join_error_no_match(GCAM_region_names, by = "GCAM_region_ID") %>%
       select(-GCAM_region_ID) %>%
       filter(GCAM_commodity %in% COMM_STORAGE) %>%
-      filter(year %in% 2015) %>% filter(element == "Closing stocks") %>%
-      dplyr::transmute(region, supplysector = paste0("total ", tolower(GCAM_commodity)), value) %>%
+      filter(element == "Opening stocks") %>%
+      dplyr::transmute(region, year, supplysector = paste0("total ", tolower(GCAM_commodity)), value) %>%
       mutate(supplysector = if_else(supplysector == "total roottuber", "total root_tuber", supplysector),
              supplysector = if_else(supplysector == "total nutsseeds", "total nuts_seeds", supplysector)) %>%
       mutate(value = if_else(value == 0, 0.001, value)) ->
@@ -98,7 +91,7 @@ module_aglu_ag_trade_xml <- function(command, ...) {
 
     # update domestic corn for testing
     L240.Production_reg_dom %>% filter(supplysector %in%  paste0("total ", tolower(COMM_STORAGE))) %>%
-      left_join_error_no_match(AgStock, by = c("region", "supplysector")) %>%
+      left_join_error_no_match(AgStock, by = c("region", "supplysector", "year")) %>%
       mutate(calOutputValue = calOutputValue + value) %>%
       select(-value) %>%
       bind_rows(

@@ -62,12 +62,58 @@ module_aglu_L100.FAO_SUA_connection <- function(command, ...) {
     COMM_MEAT <- FAO_an_items_PRODSTAT %>% filter(!is.na(GCAM_commodity)) %>% distinct(GCAM_commodity) %>% pull
 
 
+    # 0. Before 5-year average make sure data is consistent across periods ----
+    # 2010 onward there is opening & closing stocks
+    # Before 2010, only stock variation is available
+    # Need to adjust negative stock where applicable due to the data connection
+    # In most cases, adjustments are only needed in years before 2010 (won't affect base year mean)
+
+    # Step_0.1 Fill in opening and closing stock using base year stock and variations
+    GCAM_AgLU_SUA_APE_1973_2019 %>%
+      spread(element, value) %>%
+      group_by(GCAM_commodity, region) %>%
+      arrange(-year) %>%
+      mutate(CumStockVar = cumsum(`Stock Variation`),
+             BaseYearClosingStock  = first(`Closing stocks`),
+             OpenStock = BaseYearClosingStock - CumStockVar,
+             CloseStock = OpenStock +`Stock Variation`) %>%
+      ungroup ->
+      GCAM_AgLU_SUA_APE_1973_2019_StockAdj1
+
+    # Check quality
+
+    # GCAM_AgLU_SUA_APE_1973_2019_StockAdj1 %>%
+    #   filter(OpenStock < 0.001 | CloseStock < 0.001) %>%
+    #   group_by(region, GCAM_commodity) %>%
+    #   summarize(year = max(year), MaxNeg = min(OpenStock, CloseStock)) %>%
+    #   ungroup
+
+    # Step_0.2 Deal with negative storage
+    # Assumption here is simply to set stock variation to zero when stock is zero
+    # and recalculate all
+    # GCAM base year data won't be affected since data after 2010 are good
+
+    GCAM_AgLU_SUA_APE_1973_2019_StockAdj1 %>%
+      mutate(`Stock Variation` = if_else(OpenStock < 0.001, 0, `Stock Variation`)) %>%
+      group_by(GCAM_commodity, region) %>%
+      arrange(-year) %>%
+      mutate(CumStockVar = cumsum(`Stock Variation`),
+             BaseYearClosingStock  = first(`Closing stocks`),
+             OpenStock = BaseYearClosingStock - CumStockVar,
+             CloseStock = OpenStock +`Stock Variation`) %>%
+      ungroup %>%
+      # other use is also removed here; it will be rebalancec in L109
+      select(-CumStockVar, -BaseYearClosingStock, -`Closing stocks`, -`Opening stocks`, - `Other uses`) %>%
+      rename(`Opening stocks` = OpenStock, `Closing stocks` = CloseStock) ->
+      GCAM_AgLU_SUA_APE_1973_2019_StockAdj2
+
+
+
     # 1. Supply-utilization accounting balance ----
     # Change unit and year for later uses
     # data was balanced already and in GCAM regions
     L100.FAO_SUA_APE_balance <-
-      GCAM_AgLU_SUA_APE_1973_2019 %>%
-      spread(element, value) %>%
+      GCAM_AgLU_SUA_APE_1973_2019_StockAdj2 %>%
       mutate(Net_Export = Export - Import) %>%
       select(-unit) %>%
       left_join_error_no_match(GCAM_region_names, by = "region") %>%
@@ -81,8 +127,7 @@ module_aglu_L100.FAO_SUA_connection <- function(command, ...) {
       ungroup() %>%
       mutate(value = if_else(is.na(moving_avg), value, moving_avg)) %>%
       select(-moving_avg) %>%
-    filter(year %in% aglu.AGLU_HISTORICAL_YEARS)
-
+      filter(year %in% aglu.AGLU_HISTORICAL_YEARS)
 
 
     # 2. Primary crop and meat production and harvested area ----
@@ -353,10 +398,28 @@ module_aglu_L100.FAO_SUA_connection <- function(command, ...) {
       mutate(element = "StorageLossRate")->
       L101.StorageLossRate
 
+    # Note that redo the calculation of storage here mainly because of the 5-year average
+    # affected the years with missing values
+    # but it indeed won't affect results
     L100.FAO_SUA_APE_balance %>%
       filter(element %in% c("Closing stocks", "Opening stocks", "Stock Variation")) %>%
-      bind_rows(L101.StorageLossRate) ->
+      bind_rows(L101.StorageLossRate) %>%
+      spread(element, value) %>%
+      group_by(GCAM_commodity, GCAM_region_ID) %>%
+      arrange(-year) %>%
+      mutate(CumStockVar = cumsum(`Stock Variation`),
+             OpenStock = first(`Closing stocks`) - CumStockVar,
+             CloseStock = OpenStock +`Stock Variation`,
+             InterAnnualStockLoss = CloseStock * StorageLossRate) %>%
+      ungroup() %>%
+      select(GCAM_region_ID, GCAM_commodity, year,
+             `Opening stocks` = OpenStock,
+             `Stock Variation`,
+             `Closing stocks` = CloseStock,
+             InterAnnualStockLoss) %>%
+      gather(element, value, -GCAM_region_ID, -GCAM_commodity, -year)->
       L101.ag_Storage_Mt_R_C_Y
+
 
 
     # Produce outputs ----
