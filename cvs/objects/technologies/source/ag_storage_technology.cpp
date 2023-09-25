@@ -264,5 +264,7 @@ void AgStorageTechnology::toDebugXMLDerived( const int aPeriod, ostream& aOut, T
     XMLWriteElement(mClosingStock, "closing-stock", aOut, aTabs);
     XMLWriteElement(mTotal, "total-supply", aOut, aTabs);
     XMLWriteElement(mShareWeight, "share-weight", aOut, aTabs);
+    XMLWriteElement(mOpeningStock, "opening-stock", aOut, aTabs);
+    XMLWriteElement(mStorageCost, "storage-cost", aOut, aTabs);
 }
 

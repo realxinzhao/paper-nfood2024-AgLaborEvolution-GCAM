@@ -282,7 +282,7 @@ TechProfitShutdown, world/+{name}region, region/+{name}supplysector, supplysecto
 
 #####, FOOD STORAGE TECHNOLOGY
 
-FoodTech, world/+{name}region, region/+{name}supplysector, supplysector/+{name}subsector, subsector/+{name}food-storage-technology, food-storage-technology/+{year}period, period/+share-weight, period/+logit-exponent, period/+storage-cost, period/+closing-stock, period/+{fillout=1}loss-coefficient, period/+opening-stock, period/+lifetime, scenario, scenario/world
+FoodTech, world/+{name}region, region/+{name}supplysector, supplysector/+{name}subsector, subsector/+{name}food-storage-technology, food-storage-technology/+{year}period, period/+share-weight, period/+logit-exponent, period/+closing-stock, period/+{fillout=1}loss-coefficient, period/+storage-cost, period/+opening-stock, period/+lifetime, scenario, scenario/world
 
 FoodTechCoef, world/+{name}region, region/+{name}supplysector, supplysector/+{name}subsector, subsector/+{name}food-storage-technology, food-storage-technology/+{year}period, period/+{name}minicam-energy-input, minicam-energy-input/+coefficient, minicam-energy-input/+market-name, scenario, scenario/world
 

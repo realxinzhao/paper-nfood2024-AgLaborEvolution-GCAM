@@ -136,7 +136,7 @@ module_aglu_batch_ag_storage_xml <- function(command, ...) {
       fst_extra_1 %>% filter(year == max(MODEL_BASE_YEARS)) %>%
         mutate(year = min(MODEL_FUTURE_YEARS),
                # setting carried.forward and closing stock to zero because the values are not used
-               carried.forward = 0,
+               opening.stock = 0,
                closing.stock = 0)
     ) -> fst_extra
 
