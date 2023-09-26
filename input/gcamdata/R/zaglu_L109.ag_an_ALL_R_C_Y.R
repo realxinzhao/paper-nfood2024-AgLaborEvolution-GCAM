@@ -55,15 +55,18 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
     # This chunk will adjust bioenergy feedstock and also feed demand using others
     # There will be some assumptions needed
     # New balance
-    # c("BeginStock_Mt", "Prod_Mt", "GrossImp_Mt", "Supply_Mt",
-    #   "Food_Mt", "Feed_Mt", "Biofuels_Mt","GrossExp_Mt", "NetExp_Mt", "OtherUses_Mt", "EndStock_Mt")
-    # Stock variation is not included here yet!
+    # c("Prod_Mt", "GrossImp_Mt", "Supply_Mt",
+    #   "Food_Mt", "Feed_Mt", "Biofuels_Mt","GrossExp_Mt", "NetExp_Mt", "OtherUses_Mt",
+    #   "Closing stocks", "Opening stocks")
+
+    # Storage is separated
+    # L101.ag_Storage_Mt_R_C_Y only include commodities for storage modeling
+    # commodities not included there will have zero storage; see upstream adjustments
+
     # Here, when other use is negative, net trade is adjusted
     # There will be concerns on primary vs. secondary trade and trade within or across aggregated regions.
 
-    # COMM_STORAGE <- c("Corn")
-    # #L100.ag_Storage_Mt_R_C_Y %>% filter(GCAM_commodity %in% COMM_STORAGE) %>% filter(year == 2015)
-    # L109.ag_ALL_Mt_R_C_Y %>% filter(year == 2015)
+
 
     # List of commodities in production table ----
     L101.ag_Prod_Mt_R_C_Y %>%
@@ -79,19 +82,7 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
       pull(GCAM_commodity) %>%
       unique() -> Meat_commodities
 
-    # Storage is separated only for aglu.STORAGE_COMMODITIES defined
-    # commodities not in aglu.STORAGE_COMMODITIES will have zero opening and closing stock
-    # so stock variation is still in "other use"
 
-    aglu.STORAGE_COMMODITIES <-
-      c("Corn",  "Legumes", "MiscCrop", "NutsSeeds",
-      "OilCrop", "OtherGrain", "OilPalm", "Rice", "RootTuber", "Soybean",
-      "SugarCrop",  "Wheat", "FiberCrop")  # "Fruits", "Vegetables",
-
-    aglu.STORAGE_COMMODITIES <- L101.ag_Storage_Mt_R_C_Y %>% distinct(GCAM_commodity) %>% pull
-
-    aglu.STORAGE_COMMODITIES <-
-      c("Corn")
 
     # Part 1: Primary agricultural goods ----
 
@@ -108,8 +99,12 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
       bind_rows(mutate(L108.ag_Feed_Mt_R_C_Y, flow = "Feed_Mt")) %>%
       bind_rows(mutate(L122.in_Mt_R_C_Yh, flow = "Biofuels_Mt")) %>%
       bind_rows(L101.ag_Storage_Mt_R_C_Y %>% rename(flow = element) %>%
-                  filter(GCAM_commodity %in% Primary_commodities,
-                         GCAM_commodity %in% aglu.STORAGE_COMMODITIES )) %>%
+                  filter(GCAM_commodity %in% Primary_commodities)) %>%
+      # in case L101.ag_Storage_Mt_R_C_Y is empty
+      bind_rows(tibble(`Stock Variation` = numeric(),
+                       `Opening stocks` = numeric(),
+                       `Closing stocks` = numeric(),
+                       `InterAnnualStockLoss` = numeric())) %>%
       # Get all combinations of each GCAM_commodity and flow, by spreading to wide format
       spread(flow, value) %>%
       # adjust for feedherb
@@ -127,6 +122,8 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
              # Calculate other uses
              OtherUses_Mt = Supply_Mt - Food_Mt - Feed_Mt - Biofuels_Mt - `Stock Variation`)  ->
     L109.ag_ALL_Mt_R_C_Y
+
+
 
   ## Adjust negative crop feed use using other use ----
   # The negative feed use, if exist, came from connecting feed crops to feedcake or ddgd (bioenergy) in LA108
@@ -253,9 +250,12 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
       bind_rows(mutate(L101.an_Prod_Mt_R_C_Y, flow = "Prod_Mt")) %>%
       bind_rows(mutate(L101.an_Food_Mt_R_C_Y, flow = "Food_Mt")) %>%
       bind_rows(L101.ag_Storage_Mt_R_C_Y %>% rename(flow = element) %>%
-                  filter(GCAM_commodity %in% Meat_commodities,
-                         GCAM_commodity %in% aglu.STORAGE_COMMODITIES)) %>%
+                  filter(GCAM_commodity %in% Meat_commodities)) %>%
       spread(flow, value) %>%
+      bind_rows(tibble(`Stock Variation` = numeric(),
+                       `Opening stocks` = numeric(),
+                       `Closing stocks` = numeric(),
+                       `InterAnnualStockLoss` = numeric())) %>%
       filter(year %in% aglu.AGLU_HISTORICAL_YEARS) %>%
       # Set missing values in the complete combinations to zero
       dplyr::mutate_if(is.numeric, list(~ replace(., is.na(.), 0))) %>%
@@ -388,7 +388,8 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
                      "L108.ag_Feed_Mt_R_C_Y",
                      "L108.ag_NetExp_Mt_R_FodderHerb_Y",
                      "L122.in_Mt_R_C_Yh",
-                     "L101.GrossTrade_Mt_R_C_Y"
+                     "L101.GrossTrade_Mt_R_C_Y",
+                     "L101.ag_Storage_Mt_R_C_Y"
                      ) ->
       L109.ag_ALL_Mt_R_C_Y
 
@@ -400,7 +401,8 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
       add_legacy_name("L109.an_ALL_Mt_R_C_Y") %>%
       add_precursors("L101.an_Food_Mt_R_C_Y",
                      "L101.an_Prod_Mt_R_C_Y",
-                     "L101.GrossTrade_Mt_R_C_Y") ->
+                     "L101.GrossTrade_Mt_R_C_Y",
+                     "L101.ag_Storage_Mt_R_C_Y") ->
       L109.an_ALL_Mt_R_C_Y
 
     return_data(MODULE_OUTPUTS)

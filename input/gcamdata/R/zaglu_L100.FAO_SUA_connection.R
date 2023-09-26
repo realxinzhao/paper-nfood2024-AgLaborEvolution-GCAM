@@ -20,6 +20,7 @@ module_aglu_L100.FAO_SUA_connection <- function(command, ...) {
     c(FILE = "common/GCAM_region_names",
       FILE = "aglu/FAO/FAO_ag_items_PRODSTAT",
       FILE = "aglu/FAO/FAO_an_items_PRODSTAT",
+      FILE = "aglu/A_agStorageSector",
       "GCAM_AgLU_SUA_APE_1973_2019",
       "FAO_AgProd_Kt_All",
       "FAO_AgArea_Kha_All",
@@ -60,6 +61,11 @@ module_aglu_L100.FAO_SUA_connection <- function(command, ...) {
     # Note that fodder crops are included in COMM_CROP though SUA did not have them;
     COMM_CROP <- FAO_ag_items_PRODSTAT %>% filter(!is.na(GCAM_commodity)) %>% distinct(GCAM_commodity) %>% pull
     COMM_MEAT <- FAO_an_items_PRODSTAT %>% filter(!is.na(GCAM_commodity)) %>% distinct(GCAM_commodity) %>% pull
+    COMM_STORAGE <- A_agStorageSector %>% filter(storage_model == TRUE) %>% distinct(GCAM_commodity) %>% pull
+
+    # assert that COMM_STORAGE commodities exist
+    assert_that(all(COMM_STORAGE %in% c(COMM_CROP, COMM_MEAT)), msg = "Storage commodities do not all exist in data")
+
 
 
     # 0. Before 5-year average make sure data is consistent across periods ----
@@ -102,7 +108,7 @@ module_aglu_L100.FAO_SUA_connection <- function(command, ...) {
              OpenStock = BaseYearClosingStock - CumStockVar,
              CloseStock = OpenStock +`Stock Variation`) %>%
       ungroup %>%
-      # other use is also removed here; it will be rebalancec in L109
+      # other use is also removed here; it will be re-balanced later in L109
       select(-CumStockVar, -BaseYearClosingStock, -`Closing stocks`, -`Opening stocks`, - `Other uses`) %>%
       rename(`Opening stocks` = OpenStock, `Closing stocks` = CloseStock) ->
       GCAM_AgLU_SUA_APE_1973_2019_StockAdj2
@@ -404,6 +410,9 @@ module_aglu_L100.FAO_SUA_connection <- function(command, ...) {
     L100.FAO_SUA_APE_balance %>%
       filter(element %in% c("Closing stocks", "Opening stocks", "Stock Variation")) %>%
       bind_rows(L101.StorageLossRate) %>%
+      # only keep sectors for storage modeling
+      # other sectors will have zero storage values filled in later
+      filter(GCAM_commodity %in% COMM_STORAGE) %>%
       spread(element, value) %>%
       group_by(GCAM_commodity, GCAM_region_ID) %>%
       arrange(-year) %>%
@@ -419,6 +428,7 @@ module_aglu_L100.FAO_SUA_connection <- function(command, ...) {
              InterAnnualStockLoss) %>%
       gather(element, value, -GCAM_region_ID, -GCAM_commodity, -year)->
       L101.ag_Storage_Mt_R_C_Y
+
 
 
 
@@ -529,7 +539,8 @@ module_aglu_L100.FAO_SUA_connection <- function(command, ...) {
       add_comments("Balanced element in SUA for GCAM Ag commodities") %>%
       add_units("Mt") %>%
       add_legacy_name("L101.ag_Storage_Mt_R_C_Y") %>%
-      add_precursors("GCAM_AgLU_SUA_APE_1973_2019") ->
+      add_precursors("GCAM_AgLU_SUA_APE_1973_2019",
+                     "aglu/A_agStorageSector") ->
       L101.ag_Storage_Mt_R_C_Y
 
 

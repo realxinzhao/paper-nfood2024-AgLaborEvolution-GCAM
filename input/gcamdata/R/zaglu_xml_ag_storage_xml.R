@@ -13,6 +13,7 @@ module_aglu_batch_ag_storage_xml <- function(command, ...) {
 
   MODULE_INPUTS <-
     c(FILE = "common/GCAM_region_names",
+      FILE = "aglu/A_agStorageSector",
       "L109.ag_ALL_Mt_R_C_Y",
       "L109.an_ALL_Mt_R_C_Y")
 
@@ -32,21 +33,14 @@ module_aglu_batch_ag_storage_xml <- function(command, ...) {
 
     # ===================================================
 
-    # define commodity (TODO: move to constants.R later)
-
-    # aglu.STORAGE_COMMODITIES <-
-    #   c("Corn",  "Legumes", "MiscCrop", "NutsSeeds", "OilCrop", "OtherGrain", "OilPalm",
-    #     "Rice", "RootTuber", "Soybean", "SugarCrop",  "Wheat", "FiberCrop") # "Fruits", "Vegetables",
-    #
-    # aglu.STORAGE_COMMODITIES <-
-    #   c("Corn",  "Legumes", "MiscCrop", "NutsSeeds", "OilCrop", "OtherGrain", "OilPalm",
-    #     "Rice", "RootTuber", "Soybean", "SugarCrop",  "Wheat", "FiberCrop", "Fruits", "Vegetables",
-    #     "Beef",  "Dairy", "Pork", "Poultry", "SheepGoat")
 
 
-    aglu.STORAGE_COMMODITIES <- c("Corn")
+    aglu.STORAGE_COMMODITIES <- A_agStorageSector %>% filter(storage_model == T) %>%
+      distinct() %>% pull(GCAM_commodity)
+    # all storage commodities are in L109 SUA data; this was asserted in the earlier stage
 
     # Get storage data from the adjusted SUA balances for aglu.STORAGE_COMMODITIES
+
     L109.ag_ALL_Mt_R_C_Y %>%
       gather(element, value, -GCAM_commodity, -year, -GCAM_region_ID) %>%
       bind_rows(
@@ -54,24 +48,29 @@ module_aglu_batch_ag_storage_xml <- function(command, ...) {
           gather(element, value, -GCAM_commodity, -year, -GCAM_region_ID)
       ) %>%
       # Keep relevant elements, storage comm., and base years only
-      filter(GCAM_commodity %in% aglu.STORAGE_COMMODITIES,
-             element %in% c("Opening stocks", "Closing stocks", "InterAnnualStockLoss"),
+      filter(element %in% c("Opening stocks", "Closing stocks", "InterAnnualStockLoss"),
              year %in% MODEL_BASE_YEARS) %>%
+      # Keep sectors in A_agStorageSector which are the sectors with regional markets
+      # And join sector mappings and parameters
+      inner_join(A_agStorageSector, by = "GCAM_commodity") %>%
       left_join_error_no_match(GCAM_region_names, by = "GCAM_region_ID") %>%
-      select(-GCAM_region_ID) %>%
+      select(-GCAM_region_ID) ->
+      L113.ag_Storage_Mt_R_C_Y_adj1
+
+    L113.ag_Storage_Mt_R_C_Y_adj1 %>%
       spread(element, value) %>%
       mutate(LossCoef = 1 - InterAnnualStockLoss / `Closing stocks`) %>%
+      replace_na(list(LossCoef = 0)) %>%
       group_by(GCAM_commodity, region) %>%
       # compute Carryforward here
       mutate(Carryforward = lead(`Opening stocks`),
              Carryforward = if_else(is.na(Carryforward),
                                     `Closing stocks` * LossCoef, Carryforward)) %>% ungroup %>%
-      # adjust naming here for now
-      mutate(supplysector = paste0("regional ", tolower(GCAM_commodity)),
-             supplysector = if_else(supplysector == "regional roottuber", "regional root_tuber", supplysector),
-             supplysector = if_else(supplysector == "regional nutsseeds", "regional nuts_seeds", supplysector)) %>%
-      select(supplysector, region, year, LossCoef, `Closing stocks`, `Opening stocks`, Carryforward) ->
+      # [ToDo: filter only sorage sector here, but will keep others with zero values later]
+      filter(GCAM_commodity %in% aglu.STORAGE_COMMODITIES) %>%
+      select(supplysector, region, year, LossCoef, `Closing stocks`, `Opening stocks`, Carryforward, logit.exponent) ->
       L113.ag_Storage_Mt_R_C_Y_adj
+
 
     # Pull region and sector to prepare for tables for xml generating
     L113.ag_Storage_Mt_R_C_Y_adj %>%
@@ -200,7 +199,11 @@ module_aglu_batch_ag_storage_xml <- function(command, ...) {
       add_xml_data(fst_coef, "FoodTechCoef") %>%
       add_xml_data(fst_cost, "FoodTechCost") %>%
       add_xml_data(fst_RESSecOut, "FoodTechRESSecOut") %>%
-      add_xml_data(fst_shwt, "SubsectorShrwt") #%>% add_precursors()
+      add_xml_data(fst_shwt, "SubsectorShrwt") %>%
+      add_precursors("common/GCAM_region_names",
+                     "aglu/A_agStorageSector",
+                     "L109.ag_ALL_Mt_R_C_Y",
+                     "L109.an_ALL_Mt_R_C_Y")
 
 
     return_data(MODULE_OUTPUTS)

@@ -190,10 +190,25 @@ module_aglu_L240.ag_trade <- function(command, ...) {
                                                            GCAM_region_names,
                                                            by = "GCAM_region_ID") %>%
       select(region, GCAM_commodity, year, GrossExp_Mt)
+
     L240.Prod_Mt_R_C_Y <- left_join_error_no_match(L109.ag_an_for_ALL_Mt_R_C_Y,
                                                    GCAM_region_names,
                                                    by = "GCAM_region_ID") %>%
       select(region, GCAM_commodity, year, Prod_Mt)
+
+    L240.OpenStock_Mt_R_C_Y <-
+      L109.ag_ALL_Mt_R_C_Y %>%
+      gather(element, value, -GCAM_commodity, -year, -GCAM_region_ID) %>%
+      bind_rows(
+        L109.an_ALL_Mt_R_C_Y %>%
+          gather(element, value, -GCAM_commodity, -year, -GCAM_region_ID)
+      ) %>%
+      # Keep relevant elements, storage comm., and base years only
+      filter(element %in% c("Opening stocks")) %>%
+      left_join_error_no_match(GCAM_region_names, by = "GCAM_region_ID") %>%
+      select(region, GCAM_commodity, year, element, value) %>%
+      spread(element, value)
+
     L240.Production_reg_dom <- A_agRegionalTechnology_R_Y %>%
       filter(year %in% MODEL_BASE_YEARS,
              grepl( "domestic", subsector)) %>%
@@ -201,7 +216,12 @@ module_aglu_L240.ag_trade <- function(command, ...) {
                                by = c("region", minicam.energy.input = "GCAM_commodity", "year")) %>%
       left_join_error_no_match(L240.Prod_Mt_R_C_Y,
                                by = c("region", minicam.energy.input = "GCAM_commodity", "year")) %>%
-      mutate(calOutputValue = Prod_Mt - GrossExp_Mt,
+      # using left_join here because forest had no storage placeholder added
+      left_join(L240.OpenStock_Mt_R_C_Y,
+                               by = c("region", minicam.energy.input = "GCAM_commodity", "year")) %>%
+      replace_na(list(`Opening stocks` = 0)) %>%
+      # storage enters domestic market as well
+      mutate(calOutputValue = Prod_Mt - GrossExp_Mt + `Opening stocks`,
              share.weight.year = year,
              subs.share.weight = if_else(calOutputValue > 0, 1, 0),
              tech.share.weight = subs.share.weight) %>%
