@@ -118,9 +118,10 @@ module_aglu_batch_ag_storage_xml <- function(command, ...) {
                        year,
                        share.weight = 1,
                        logit.exponent = 0.6, # 0.6
+                       storage.cost = 0,
                        closing.stock = `Closing stocks`,
                        loss.coefficient = LossCoef,
-                       carried.forward = Carryforward) %>%
+                       opening.stock = Carryforward) %>%
       dplyr::group_by_at(vars(region:food.storage.technology)) %>%
       mutate(lifetime = lead(year, 2) - year) %>%
       mutate(lifetime = if_else(year == 1990, 16, lifetime),
@@ -134,7 +135,7 @@ module_aglu_batch_ag_storage_xml <- function(command, ...) {
       fst_extra_1 %>% filter(year == max(MODEL_BASE_YEARS)) %>%
         mutate(year = min(MODEL_FUTURE_YEARS),
                # setting carried.forward and closing stock to zero because the values are not used
-               carried.forward = 0,
+               opening.stock = 0,
                closing.stock = 0)
     ) -> fst_extra
 

@@ -168,7 +168,7 @@ generate_level2_data_names <- function() {
   level2_data_names[["FoodStorageTechYr"]] <- c(level2_data_names[["FoodStorageTech"]], "year")
   level2_data_names[["FoodTechCoef"]] <- c(level2_data_names[["FoodStorageTechYr"]], "minicam.energy.input", "coefficient", "market.name")
   level2_data_names[["FoodTechCost"]] <- c(level2_data_names[["FoodStorageTechYr"]], "minicam.non.energy.input", "input.cost")
-  level2_data_names[["FoodTech"]] <- c(level2_data_names[["FoodStorageTechYr"]], "share.weight", "logit.exponent", "closing.stock", "loss.coefficient", "carried.forward", "lifetime")
+  level2_data_names[["FoodTech"]] <- c(level2_data_names[["FoodStorageTechYr"]], "share.weight", "logit.exponent", "closing.stock", "loss.coefficient", "storage.cost", "opening.stock", "lifetime")
   level2_data_names[["FoodTechInterp"]] <- c(level2_data_names[["FoodStorageTech"]], "apply.to", "from.year", "to.year", "interpolation.function")
   level2_data_names[["FoodTechRESSecOut"]] <- c(level2_data_names[["FoodStorageTechYr"]], "res.secondary.output", "output.ratio", "pMultiplier")
 

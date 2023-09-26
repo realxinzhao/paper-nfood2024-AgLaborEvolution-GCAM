@@ -112,7 +112,7 @@ protected:
         Technology,
 
         //! Amount carried forward from one model period to the next 
-        DEFINE_VARIABLE( SIMPLE, "opening-stock", mOpeningStock, Value ),
+        DEFINE_VARIABLE(SIMPLE, "opening-stock", mOpeningStock, Value),
         // Expected price of food crop
         DEFINE_VARIABLE(SIMPLE | NOT_PARSABLE, "expected-price", mAdjExpectedPrice, Value),
         //initial amount of crop in storage

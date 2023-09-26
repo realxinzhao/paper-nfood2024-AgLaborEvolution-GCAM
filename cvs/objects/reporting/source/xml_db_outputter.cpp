@@ -844,7 +844,7 @@ void XMLDBOutputter::startVisitTechnology( const Technology* aTechnology, const 
         int techYear = agStorageTech->getYear(); 
         int techPeriod = modeltime->getyr_to_per(techYear);
         double openStock = techPeriod <= modeltime->getFinalCalibrationPeriod() ? 
-            agStorageTech->mCarriedForwardValue : 
+            agStorageTech->mOpeningStock : 
             agStorageTech->mStoredValue * agStorageTech->mLossCoefficient;
         
         writeItemToBuffer(openStock, "opening-stock",
