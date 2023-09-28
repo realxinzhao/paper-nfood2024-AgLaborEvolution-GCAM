@@ -9,10 +9,11 @@
 #' @return Depends on \code{command}: either a vector of required inputs,
 #' a vector of output names, or (if \code{command} is "MAKE") all
 #' the generated outputs: \code{ag_storage.xml}.
+#' @author XZ 2023
 module_aglu_batch_ag_storage_xml <- function(command, ...) {
 
   MODULE_INPUTS <-
-    c("L113.StorageTechTable")
+    c("L113.StorageTechAndPassThrough")
 
   MODULE_OUTPUTS <-
     c(XML = "ag_storage.xml")
@@ -28,14 +29,24 @@ module_aglu_batch_ag_storage_xml <- function(command, ...) {
     # Load required inputs ----
     get_data_list(all_data, MODULE_INPUTS, strip_attributes = TRUE)
 
-    # ===================================================
 
+    # 0. data ready ----
+    L113.StorageTechAndPassThrough %>%
+      filter(storage_model == TRUE) ->
+      L113.StorageTechTable
+
+    L113.StorageTechAndPassThrough %>%
+      filter(storage_model == FALSE) %>%
+      rename(technology = food.storage.technology) %>%
+      mutate(minicam.non.energy.input = "border-cost", input.cost = 0) ->
+      L113.PassThroughTable
+
+    # 0. Shared tables
 
     # Pull region and sector to prepare for tables for xml generating
-    L113.StorageTechTable %>%
+    L113.StorageTechAndPassThrough %>%
       distinct(region, supplysector, food.storage.technology) ->
       L113.ag_Storage_region_supplysector
-
 
     # Tables for xmls
     supplysec <-
@@ -57,6 +68,13 @@ module_aglu_batch_ag_storage_xml <- function(command, ...) {
                        subsector = supplysector,
                        year.fillout = min(MODEL_BASE_YEARS), share.weight = 1)
 
+    subsec_shwt <-
+      L113.StorageTechAndPassThrough %>%
+      select(LEVEL2_DATA_NAMES[["SubsectorShrwt"]])
+
+
+    # 1. tables ready for StorageTech commodities ----
+
     fst_interp <-
       L113.ag_Storage_region_supplysector %>%
       dplyr::transmute(region, supplysector,
@@ -65,7 +83,6 @@ module_aglu_batch_ag_storage_xml <- function(command, ...) {
                        apply.to = "share-weight",
                        from.year = MODEL_FINAL_BASE_YEAR, to.year = max(MODEL_YEARS), interpolation.function = "fixed") %>%
       select(LEVEL2_DATA_NAMES[["FoodTechInterp"]])
-
 
     fst_extra <-
       L113.StorageTechTable %>%
@@ -81,20 +98,38 @@ module_aglu_batch_ag_storage_xml <- function(command, ...) {
     #   L113.StorageTechTable %>% mutate(minicam.non.energy.input = "storage-cost", input.cost = 0) %>%
     #   select(LEVEL2_DATA_NAMES[["FoodTechCost"]])
 
-
     fst_RESSecOut <-
       L113.StorageTechTable %>%
       mutate(res.secondary.output = GCAM_commodity) %>%
       mutate(output.ratio = 1, pMultiplier = 0) %>%
       select(LEVEL2_DATA_NAMES[["FoodTechRESSecOut"]])
 
-    fst_shwt <-
-      L113.StorageTechTable %>%
-      select(LEVEL2_DATA_NAMES[["SubsectorShrwt"]])
+
+    # 2. tables ready for PassThrough commodities ----
 
 
-    # fst_RESSecOut %>% filter(supplysector != "regional vegetables") ->
-    #   fst_RESSecOut
+    passthrough_interp <-
+      L113.PassThroughTable %>%
+      dplyr::transmute(region, supplysector,
+                       subsector = supplysector,
+                       technology,
+                       apply.to = "share-weight",
+                       from.year = MODEL_FINAL_BASE_YEAR, to.year = max(MODEL_YEARS), interpolation.function = "fixed") %>%
+      select(LEVEL2_DATA_NAMES[["TechInterp"]])
+
+    passthrough_techshrwt <-
+      L113.PassThroughTable %>%
+      select(LEVEL2_DATA_NAMES[["TechShrwt"]])
+
+    passthrough_coef <-
+      L113.PassThroughTable %>%
+      mutate(coefficient = 1, market.name = region) %>%
+      select(LEVEL2_DATA_NAMES[["TechCoef"]])
+
+    passthrough_cost <-
+      L113.PassThroughTable %>%
+      select(LEVEL2_DATA_NAMES[["TechCost"]])
+
 
     # Produce outputs ----
     ag_storage.xml <-
@@ -102,13 +137,17 @@ module_aglu_batch_ag_storage_xml <- function(command, ...) {
       add_logit_tables_xml(supplysec, "Supplysector") %>%
       add_logit_tables_xml(subsec, "SubsectorLogit") %>%
       add_xml_data(subsec_sw, "SubsectorShrwtFllt") %>%
+      add_xml_data(subsec_shwt, "SubsectorShrwt") %>%
       add_xml_data(fst_interp, "FoodTechInterp") %>%
       add_xml_data(fst_extra, "FoodTech") %>%
-      add_xml_data(fst_coef, "FoodTechCoef") %>%
       #add_xml_data(fst_cost, "FoodTechCost") %>%
+      add_xml_data(fst_coef, "FoodTechCoef") %>%
       add_xml_data(fst_RESSecOut, "FoodTechRESSecOut") %>%
-      add_xml_data(fst_shwt, "SubsectorShrwt") %>%
-      add_precursors("L113.StorageTechTable")
+      add_xml_data(passthrough_interp, "TechInterp") %>%
+      add_xml_data(passthrough_techshrwt, "TechShrwt") %>%
+      add_xml_data(passthrough_coef, "TechCoef") %>%
+      add_xml_data(passthrough_cost, "TechCost") %>%
+      add_precursors("L113.StorageTechAndPassThrough")
 
 
     return_data(MODULE_OUTPUTS)

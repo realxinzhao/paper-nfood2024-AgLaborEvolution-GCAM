@@ -66,7 +66,7 @@ module_aglu_L240.ag_trade <- function(command, ...) {
     # Load required inputs ----
     get_data_list(all_data, MODULE_INPUTS, strip_attributes = TRUE)
 
-    # 0: Bind crops, livestock, and forest for prod and net trade (netexp)
+    # 0: Bind crops, livestock, and forest for prod and net trade (netexp) ----
     L109.ag_an_for_ALL_Mt_R_C_Y <- L109.ag_ALL_Mt_R_C_Y %>%
       select(GCAM_region_ID, GCAM_commodity, year, Prod_Mt, NetExp_Mt) %>%
       bind_rows(L109.an_ALL_Mt_R_C_Y %>%
@@ -85,7 +85,7 @@ module_aglu_L240.ag_trade <- function(command, ...) {
                   select(GCAM_region_ID, GCAM_commodity, year, GrossExp_Mt, GrossImp_Mt))
 
 
-    # 1. TRADED SECTOR / SUBSECTOR / TECHNOLOGY")
+    # 1. TRADED SECTOR / SUBSECTOR / TECHNOLOGY") ----
     # L240.Supplysector_tra: generic supplysector info for traded ag commodities
     # By convention, traded commodity information is contained within the USA region (could be within any)
     A_agTradedSector$region <- gcam.USA_REGION
@@ -140,7 +140,7 @@ module_aglu_L240.ag_trade <- function(command, ...) {
              tech.share.weight = subs.share.weight) %>%
       select(LEVEL2_DATA_NAMES[["Production"]])
 
-    # PART 2: DOMESTIC SUPPLY SECTOR / SUBSECTOR / TECHNOLOGY")
+    # 2: DOMESTIC SUPPLY SECTOR / SUBSECTOR / TECHNOLOGY") ----
     # L240.Supplysector_reg: generic supplysector info for regional ag commodities
     L240.Supplysector_reg <- mutate(A_agRegionalSector, logit.year.fillout = min(MODEL_BASE_YEARS)) %>%
       write_to_all_regions(c(LEVEL2_DATA_NAMES[["Supplysector"]], "logit.type"),

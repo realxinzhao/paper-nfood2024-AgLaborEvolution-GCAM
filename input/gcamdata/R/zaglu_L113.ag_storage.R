@@ -23,7 +23,7 @@ module_aglu_L113_ag_storage <- function(command, ...) {
       "L109.an_ALL_Mt_R_C_Y")
 
   MODULE_OUTPUTS <-
-    c("L113.StorageTechTable")
+    c("L113.StorageTechAndPassThrough")
 
   if(command == driver.DECLARE_INPUTS) {
     return(MODULE_INPUTS)
@@ -38,18 +38,6 @@ module_aglu_L113_ag_storage <- function(command, ...) {
 
     # [ToDo: adding forest (L110) to here later when seeing fit]
     # so regional forest and total forest would be separated
-
-    # There should be no storage if there is no consumption!
-    # Argentina in 2010 had no palm consumption
-
-
-
-
-    aglu.STORAGE_COMMODITIES <- A_agStorageSector %>% filter(storage_model == T) %>%
-      distinct() %>% pull(GCAM_commodity)
-
-    #aglu.STORAGE_COMMODITIES <- c(aglu.STORAGE_COMMODITIES, "Vegetables")
-
 
 
     # 1. Get storage data from the adjusted SUA balances ----
@@ -82,10 +70,8 @@ module_aglu_L113_ag_storage <- function(command, ...) {
       mutate(Carryforward = lead(`Opening stocks`),
              Carryforward = if_else(is.na(Carryforward),
                                     `Closing stocks` * LossCoef, Carryforward)) %>% ungroup %>%
-      # [ToDo: filter only storage sector here, but will keep others with zero values later]
-      filter(GCAM_commodity %in% aglu.STORAGE_COMMODITIES) %>%
       select(supplysector, region, year, LossCoef, `Closing stocks`, `Opening stocks`,
-             Carryforward, logit.exponent, technology, minicam_energy_input, GCAM_commodity) ->
+             Carryforward, logit.exponent, technology, minicam_energy_input, GCAM_commodity, storage_model) ->
       L113.ag_Storage_Mt_R_C_Y_adj
 
 
@@ -102,7 +88,7 @@ module_aglu_L113_ag_storage <- function(command, ...) {
 
     # Construct the key table for storage tech.
     # ToDo: storage.cost
-    L113.StorageTechTable <-
+    L113.StorageTechAndPassThrough <-
       L113.ag_Storage_Mt_R_C_Y_adj %>%
       dplyr::transmute(region, supplysector,
                        subsector = supplysector,
@@ -115,14 +101,14 @@ module_aglu_L113_ag_storage <- function(command, ...) {
                        loss.coefficient = LossCoef,
                        opening.stock = Carryforward,
                        minicam.energy.input = minicam_energy_input,
-                       GCAM_commodity) %>%
+                       GCAM_commodity, storage_model) %>%
       left_join_error_no_match(L113.StorageLifeTime, by = "year")
 
-    # add a future year here
-    L113.StorageTechTable <-
-      L113.StorageTechTable %>%
+    # add a future year here for storage commodities (storage_model == TRUE)
+    L113.StorageTechAndPassThrough <-
+      L113.StorageTechAndPassThrough %>%
       bind_rows(
-        L113.StorageTechTable %>%
+        L113.StorageTechAndPassThrough %>% filter(storage_model == TRUE) %>%
           filter(year == max(MODEL_BASE_YEARS)) %>%
           mutate(year = min(MODEL_FUTURE_YEARS),
                  # setting carried.forward and closing stock to zero
@@ -132,17 +118,15 @@ module_aglu_L113_ag_storage <- function(command, ...) {
                  lifetime = sort(MODEL_FUTURE_YEARS)[2] - max(MODEL_BASE_YEARS))
       )
 
-
-
     # Produce outputs ----
-    L113.StorageTechTable %>%
+    L113.StorageTechAndPassThrough %>%
       add_title("Ag storage data and parameter assumptions") %>%
       add_units("various") %>%
       add_precursors("common/GCAM_region_names",
                      "aglu/A_agStorageSector",
                      "L109.ag_ALL_Mt_R_C_Y",
                      "L109.an_ALL_Mt_R_C_Y") ->
-      L113.StorageTechTable
+      L113.StorageTechAndPassThrough
 
 
     return_data(MODULE_OUTPUTS)

@@ -24,8 +24,7 @@ module_aglu_ag_trade_xml <- function(command, ...) {
       "L240.TechShrwt_reg",
       "L240.TechCoef_reg",
       "L240.Production_reg_imp",
-      "L240.Production_reg_dom",
-      FILE = "aglu/A_agStorageSector")
+      "L240.Production_reg_dom")
 
   MODULE_OUTPUTS <-
     c(XML = "ag_trade.xml")
@@ -42,6 +41,7 @@ module_aglu_ag_trade_xml <- function(command, ...) {
     get_data_list(all_data, MODULE_INPUTS, strip_attributes = TRUE)
 
     # ===================================================
+
 
 
     # Produce outputs
