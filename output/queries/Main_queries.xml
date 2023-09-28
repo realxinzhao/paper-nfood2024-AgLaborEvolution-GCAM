@@ -4194,16 +4194,34 @@ element input {
             </supplyDemandQuery>
         </queryGroup>
         <queryGroup name="ag storage">
-            <supplyDemandQuery title="regional supply (current consumption)">
-                <axis1 name="input">input</axis1>
-                <axis2 name="Year">demand-physical[@vintage]</axis2>
-                <xPath buildList="true" dataName="input" group="false" sumAll="false">*[@type='sector' and contains(@name, 'regional')]/*[@type='subsector']//*[@type='input']/demand-physical[@unit='Mt' or @unit='billion m3']/node()</xPath>
-                <comments/>
-            </supplyDemandQuery>
-            <supplyDemandQuery title="beginning stock (supply from carryover)">
+            <supplyDemandQuery title="opening stock (supply from carryover)">
                 <axis1 name="technology">technology[@name]</axis1>
                 <axis2 name="Year">physical-output[@vintage]</axis2>
                 <xPath buildList="true" dataName="output" group="false" sumAll="false">*[@type='sector']/*[@type='subsector' and contains(@name, 'regional')]/*[@type='technology']/res-secondary-output[@type='output']/physical-output/node()</xPath>
+                <comments/>
+            </supplyDemandQuery>
+            <supplyDemandQuery title="closing stock (before loss/adjustments)">
+                <axis1 name="technology">technology</axis1>
+                <axis2 name="Year">technology</axis2>
+                <xPath buildList="true" dataName="output" group="false" sumAll="false">*[@type='sector' and
+               contains(@name, 'regional')]/
+               *[@type='subsector']/*[@type='technology' and
+               contains(@name, 'ag-storage')]/closing-stock/text()</xPath>
+                <comments/>
+            </supplyDemandQuery>
+            <supplyDemandQuery title="closing stock (after loss/adjustments; carried over)">
+                <axis1 name="technology">technology</axis1>
+                <axis2 name="Year">technology</axis2>
+                <xPath buildList="true" dataName="output" group="false" sumAll="false">*[@type='sector' and
+               contains(@name, 'regional')]/
+               *[@type='subsector']/*[@type='technology' and
+               contains(@name, 'ag-storage')]/opening-stock/text()</xPath>
+                <comments/>
+            </supplyDemandQuery>
+            <supplyDemandQuery title="total supply (current + future consumption)">
+                <axis1 name="input">input</axis1>
+                <axis2 name="Year">demand-physical[@vintage]</axis2>
+                <xPath buildList="true" dataName="input" group="false" sumAll="false">*[@type='sector' and contains(@name, 'regional')]/*[@type='subsector']//*[@type='input' and contains(@name, 'total')]/demand-physical[@unit='Mt' or @unit='billion m3']/node()</xPath>
                 <comments/>
             </supplyDemandQuery>
             <supplyDemandQuery title="ag regional prices (current consumer prices)">

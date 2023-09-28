@@ -51,22 +51,16 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
     get_data_list(all_data, MODULE_INPUTS, strip_attributes = TRUE)
 
 
+    # Balance elements
+    # c("Prod_Mt", "GrossImp_Mt", "Supply_Mt", "Food_Mt", "Feed_Mt", "Biofuels_Mt",
+    #   "GrossExp_Mt", "NetExp_Mt", "OtherUses_Mt", "Closing stocks", "Opening stocks")
 
-    # This chunk will adjust bioenergy feedstock and also feed demand using others
-    # There will be some assumptions needed
-    # New balance
-    # c("Prod_Mt", "GrossImp_Mt", "Supply_Mt",
-    #   "Food_Mt", "Feed_Mt", "Biofuels_Mt","GrossExp_Mt", "NetExp_Mt", "OtherUses_Mt",
-    #   "Closing stocks", "Opening stocks")
-
-    # Storage is separated
+    # Storage is separated (2023.9)
     # L101.ag_Storage_Mt_R_C_Y only include commodities for storage modeling
     # commodities not included there will have zero storage; see upstream adjustments
 
     # Here, when other use is negative, net trade is adjusted
     # There will be concerns on primary vs. secondary trade and trade within or across aggregated regions.
-
-
 
     # List of commodities in production table ----
     L101.ag_Prod_Mt_R_C_Y %>%
@@ -81,6 +75,10 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
     L101.an_Prod_Mt_R_C_Y %>%
       pull(GCAM_commodity) %>%
       unique() -> Meat_commodities
+
+    L101.ag_Storage_Mt_R_C_Y %>%
+      distinct(GCAM_commodity) %>% pull ->
+      Storage_commodities
 
 
 
@@ -122,8 +120,6 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
              # Calculate other uses
              OtherUses_Mt = Supply_Mt - Food_Mt - Feed_Mt - Biofuels_Mt - `Stock Variation`)  ->
     L109.ag_ALL_Mt_R_C_Y
-
-
 
   ## Adjust negative crop feed use using other use ----
   # The negative feed use, if exist, came from connecting feed crops to feedcake or ddgd (bioenergy) in LA108
@@ -238,6 +234,62 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
       stop("Still negative other uses in model base year, possibly due to biofuel crop requirements exceeding available domestic supply")
     }
 
+
+    ## Address Zero current consumption issue for Storage_commodities ----
+
+
+    # For South Korea sugar crop, Argentina palm had data problem
+    # Adding dummy other use as 1% of stock in historical MODEL_BASE_YEARS, when no current consumption
+    # Stocks and variation is adjusted
+
+    L109.ag_ALL_Mt_R_C_Y %>%
+      mutate(CurrentConsumption = Feed_Mt + Food_Mt + OtherUses_Mt) ->
+      L109.ag_ALL_Mt_R_C_Y_4
+
+    # Adjustment is very simple since we do not have balance constraint of stock carryover
+    # in historical years due to losses and gaps
+
+    L109.ag_ALL_Mt_R_C_Y_4 %>%
+      filter(year %in% MODEL_BASE_YEARS[MODEL_BASE_YEARS != max(MODEL_BASE_YEARS)],
+             `Closing stocks` > 0 & CurrentConsumption == 0,
+             GCAM_commodity %in% Storage_commodities) %>%
+      mutate(OtherUses_Mt = 0.01 * `Closing stocks`,
+             `Stock Variation` = `Stock Variation` - OtherUses_Mt,
+             `Closing stocks` = `Closing stocks` - OtherUses_Mt,
+             CurrentConsumption = Feed_Mt + Food_Mt + OtherUses_Mt) ->
+      L109.ag_ALL_Mt_R_C_Y_5
+
+    # Bind rows to get full table
+    L109.ag_ALL_Mt_R_C_Y_4 %>%
+      filter(!(year %in% MODEL_BASE_YEARS[MODEL_BASE_YEARS != max(MODEL_BASE_YEARS)] &
+             `Closing stocks` > 0 & CurrentConsumption == 0 &
+               GCAM_commodity %in% Storage_commodities)) %>%
+      bind_rows(
+        L109.ag_ALL_Mt_R_C_Y_5) ->
+      L109.ag_ALL_Mt_R_C_Y
+
+    ## Address Zero closing storage issue (potential) for Storage_commodities ----
+
+    # adding dummy tiny storage as 1% current consumption when storage is zero in base years
+    Adj_Storage_Share <- 0.01
+
+    L109.ag_ALL_Mt_R_C_Y %>%
+      filter(year %in% MODEL_BASE_YEARS, `Closing stocks` == 0,
+             GCAM_commodity %in% Storage_commodities) %>%
+      mutate(`Closing stocks` = `Closing stocks` + Adj_Storage_Share * CurrentConsumption,
+             `Opening stocks` = `Opening stocks` + Adj_Storage_Share * CurrentConsumption) ->
+      L109.ag_ALL_Mt_R_C_Y_6
+
+    # Bind rows to get full table
+    L109.ag_ALL_Mt_R_C_Y %>%
+      filter(!(year %in% MODEL_BASE_YEARS & `Closing stocks` == 0 &
+                 GCAM_commodity %in% Storage_commodities)) %>%
+      bind_rows(L109.ag_ALL_Mt_R_C_Y_6) %>%
+      select(-CurrentConsumption ) ->
+      L109.ag_ALL_Mt_R_C_Y
+
+
+
     # Part 2: Animal commodities ----
 
     ## Combine all flow tables ----
@@ -262,7 +314,7 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
       mutate(# Calculate the domestic supply
              Supply_Mt = Prod_Mt - NetExp_Mt,
              # Calculate other uses
-             OtherUses_Mt = Supply_Mt - Food_Mt)  ->
+             OtherUses_Mt = Supply_Mt - Food_Mt - `Stock Variation`)  ->
       L109.an_ALL_Mt_R_C_Y
 
 
@@ -356,8 +408,62 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
     }
 
 
+    # These adjustments are added for animal products
+    # even though storage focuses on crops for now in modeling
+    ## Address Zero current consumption issue for Storage_commodities ----
 
-    # Adjust self-trade to ensure export < production ----
+    # For South Korea sugar crop, Argentina palm had data problem
+    # Adding dummy other use as 1% of stock in historical MODEL_BASE_YEARS, when no current consumption
+    # Stocks and  variation is adjusted
+
+    L109.an_ALL_Mt_R_C_Y %>%
+      mutate(CurrentConsumption = Food_Mt + OtherUses_Mt) ->
+      L109.an_ALL_Mt_R_C_Y_4
+
+    # Adjustment is very simple since we do not have balance constraint of stock carryover
+    # in historical years due to losses and gaps
+    # Pakistain Pork will have issue
+
+    L109.an_ALL_Mt_R_C_Y_4 %>%
+      filter(year %in% MODEL_BASE_YEARS[MODEL_BASE_YEARS != max(MODEL_BASE_YEARS)],
+             `Closing stocks` > 0 & CurrentConsumption == 0,
+             GCAM_commodity %in% Storage_commodities) %>%
+      mutate(OtherUses_Mt = 0.01 * `Closing stocks`,
+             `Stock Variation` = `Stock Variation` - OtherUses_Mt,
+             `Closing stocks` = `Closing stocks` - OtherUses_Mt,
+             CurrentConsumption = Feed_Mt + Food_Mt + OtherUses_Mt) ->
+      L109.an_ALL_Mt_R_C_Y_5
+
+    # Bind rows to get full table
+    L109.an_ALL_Mt_R_C_Y_4 %>%
+      filter(!(year %in% MODEL_BASE_YEARS[MODEL_BASE_YEARS != max(MODEL_BASE_YEARS)] &
+               `Closing stocks` > 0 & CurrentConsumption == 0 &
+                 GCAM_commodity %in% Storage_commodities)) %>%
+      bind_rows(
+        L109.an_ALL_Mt_R_C_Y_5) ->
+      L109.an_ALL_Mt_R_C_Y
+
+    ## Address Zero closing storage issue (potential) for Storage_commodities ----
+
+    # adding dummy tiny storage
+    L109.an_ALL_Mt_R_C_Y %>%
+      filter(year %in% MODEL_BASE_YEARS, `Closing stocks` == 0,
+             GCAM_commodity %in% Storage_commodities) %>%
+      mutate(`Closing stocks` = `Closing stocks` + 0.01 * CurrentConsumption,
+             `Opening stocks` = `Opening stocks` + 0.01 * CurrentConsumption) ->
+      L109.an_ALL_Mt_R_C_Y_6
+
+    # Bind rows to get full table
+    L109.an_ALL_Mt_R_C_Y %>%
+      filter(!(year %in% MODEL_BASE_YEARS & `Closing stocks` == 0 &
+                 GCAM_commodity %in% Storage_commodities)) %>%
+      bind_rows(L109.an_ALL_Mt_R_C_Y_6) %>%
+      select(-CurrentConsumption ) ->
+      L109.an_ALL_Mt_R_C_Y
+
+
+
+    # Part 3 Adjust self-trade to ensure export < production ----
     # this was an assumption in GCAM cpp
     # the assumption could be strong e.g., US does not product OilPalm but could export OilPalm product
     L109.ag_ALL_Mt_R_C_Y %>%
