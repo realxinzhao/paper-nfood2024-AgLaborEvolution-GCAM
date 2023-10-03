@@ -376,7 +376,7 @@ module_aglu_L100.FAO_SUA_connection <- function(command, ...) {
       L101.LossRate
 
 
-    # Another problem is data quality. E.g., Brazil has zero loss;
+    # Another problem is data quality. E.g., Brazil has zero soybean loss;
     # Other regions may have loss values that are unrealistically small
 
     # Calculate world loss rate using commodity and region with positive loss values
@@ -415,6 +415,12 @@ module_aglu_L100.FAO_SUA_connection <- function(command, ...) {
       filter(GCAM_commodity %in% COMM_STORAGE) %>%
       spread(element, value) %>%
       group_by(GCAM_commodity, GCAM_region_ID) %>%
+      # in case COMM_STORAGE is empty
+      bind_rows(tibble(`Opening stocks` = numeric(),
+                       `Closing stocks` = numeric(),
+                       `Stock Variation` = numeric(),
+                       `InterAnnualStockLoss` = numeric(),
+                       StorageLossRate = numeric() )) %>%
       arrange(-year) %>%
       mutate(CumStockVar = cumsum(`Stock Variation`),
              OpenStock = first(`Closing stocks`) - CumStockVar,
@@ -423,7 +429,6 @@ module_aglu_L100.FAO_SUA_connection <- function(command, ...) {
       ungroup() %>%
       select(GCAM_region_ID, GCAM_commodity, year,
              `Opening stocks` = OpenStock,
-             `Stock Variation`,
              `Closing stocks` = CloseStock,
              InterAnnualStockLoss) %>%
       gather(element, value, -GCAM_region_ID, -GCAM_commodity, -year)->

@@ -53,14 +53,19 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
 
     # Balance elements
     # c("Prod_Mt", "GrossImp_Mt", "Supply_Mt", "Food_Mt", "Feed_Mt", "Biofuels_Mt",
-    #   "GrossExp_Mt", "NetExp_Mt", "OtherUses_Mt", "Closing stocks", "Opening stocks")
+    #   "GrossExp_Mt", "NetExp_Mt", "OtherUses_Mt", "Closing stocks", "Opening stocks", "InterAnnualStorageLoss")
 
     # Storage is separated (2023.9)
     # L101.ag_Storage_Mt_R_C_Y only include commodities for storage modeling
     # commodities not included there will have zero storage; see upstream adjustments
 
-    # Here, when other use is negative, net trade is adjusted
+    # Note that when other use is negative, net trade is adjusted
     # There will be concerns on primary vs. secondary trade and trade within or across aggregated regions.
+
+    # It is important to note that in our modeling, the InterAnnualStorageLoss is linked to Closing stocks
+    # The assumption is that the storage loss was in the total loss which is now separated and aggregated into Closing stocks
+    # So Closing stocks in t - InterAnnualStorageLoss in t = Opening stocks in t+1
+    # We will adjust Closing stocks to include InterAnnualStorageLoss
 
     # List of commodities in production table ----
     L101.ag_Prod_Mt_R_C_Y %>%
@@ -99,8 +104,7 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
       bind_rows(L101.ag_Storage_Mt_R_C_Y %>% rename(flow = element) %>%
                   filter(GCAM_commodity %in% Primary_commodities)) %>%
       # in case L101.ag_Storage_Mt_R_C_Y is empty
-      bind_rows(tibble(`Stock Variation` = numeric(),
-                       `Opening stocks` = numeric(),
+      bind_rows(tibble(`Opening stocks` = numeric(),
                        `Closing stocks` = numeric(),
                        `InterAnnualStockLoss` = numeric())) %>%
       # Get all combinations of each GCAM_commodity and flow, by spreading to wide format
@@ -115,10 +119,11 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
       # For any feed commodities (e.g. pasture, residue, scavenging) that are not reported in production or trade table,
       # assume all production are domestic, and set production = feed
       mutate(Prod_Mt = if_else(GCAM_commodity %in% Feed_commodities, Feed_Mt, Prod_Mt),
-             # Calculate the domestic supply
-             Supply_Mt = Prod_Mt - NetExp_Mt,
-             # Calculate other uses
-             OtherUses_Mt = Supply_Mt - Food_Mt - Feed_Mt - Biofuels_Mt - `Stock Variation`)  ->
+             # Calculate the domestic supply (used in zaglu_L202)
+             Supply_Mt = `Opening stocks` + Prod_Mt - NetExp_Mt,
+             ## Calculate other uses ----
+             OtherUses_Mt = Supply_Mt - Food_Mt - Feed_Mt - Biofuels_Mt - `Closing stocks` - InterAnnualStockLoss,
+             `Closing stocks` = `Closing stocks` +  InterAnnualStockLoss)  ->
     L109.ag_ALL_Mt_R_C_Y
 
   ## Adjust negative crop feed use using other use ----
@@ -240,7 +245,7 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
 
     # For South Korea sugar crop, Argentina palm had data problem
     # Adding dummy other use as 1% of stock in historical MODEL_BASE_YEARS, when no current consumption
-    # Stocks and variation is adjusted
+    # Stocks is adjusted
 
     L109.ag_ALL_Mt_R_C_Y %>%
       mutate(CurrentConsumption = Feed_Mt + Food_Mt + OtherUses_Mt) ->
@@ -254,7 +259,6 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
              `Closing stocks` > 0 & CurrentConsumption == 0,
              GCAM_commodity %in% Storage_commodities) %>%
       mutate(OtherUses_Mt = 0.01 * `Closing stocks`,
-             `Stock Variation` = `Stock Variation` - OtherUses_Mt,
              `Closing stocks` = `Closing stocks` - OtherUses_Mt,
              CurrentConsumption = Feed_Mt + Food_Mt + OtherUses_Mt) ->
       L109.ag_ALL_Mt_R_C_Y_5
@@ -304,17 +308,17 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
       bind_rows(L101.ag_Storage_Mt_R_C_Y %>% rename(flow = element) %>%
                   filter(GCAM_commodity %in% Meat_commodities)) %>%
       spread(flow, value) %>%
-      bind_rows(tibble(`Stock Variation` = numeric(),
-                       `Opening stocks` = numeric(),
+      bind_rows(tibble(`Opening stocks` = numeric(),
                        `Closing stocks` = numeric(),
                        `InterAnnualStockLoss` = numeric())) %>%
       filter(year %in% aglu.AGLU_HISTORICAL_YEARS) %>%
       # Set missing values in the complete combinations to zero
       dplyr::mutate_if(is.numeric, list(~ replace(., is.na(.), 0))) %>%
       mutate(# Calculate the domestic supply
-             Supply_Mt = Prod_Mt - NetExp_Mt,
-             # Calculate other uses
-             OtherUses_Mt = Supply_Mt - Food_Mt - `Stock Variation`)  ->
+             Supply_Mt = `Opening stocks` + Prod_Mt - NetExp_Mt,
+             ## Calculate other uses ----
+             OtherUses_Mt = Supply_Mt - Food_Mt - `Closing stocks` - InterAnnualStockLoss,
+             `Closing stocks` = `Closing stocks` +  InterAnnualStockLoss)  ->
       L109.an_ALL_Mt_R_C_Y
 
 
@@ -414,7 +418,7 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
 
     # For South Korea sugar crop, Argentina palm had data problem
     # Adding dummy other use as 1% of stock in historical MODEL_BASE_YEARS, when no current consumption
-    # Stocks and  variation is adjusted
+    # Stocks is adjusted
 
     L109.an_ALL_Mt_R_C_Y %>%
       mutate(CurrentConsumption = Food_Mt + OtherUses_Mt) ->
@@ -429,9 +433,8 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
              `Closing stocks` > 0 & CurrentConsumption == 0,
              GCAM_commodity %in% Storage_commodities) %>%
       mutate(OtherUses_Mt = 0.01 * `Closing stocks`,
-             `Stock Variation` = `Stock Variation` - OtherUses_Mt,
              `Closing stocks` = `Closing stocks` - OtherUses_Mt,
-             CurrentConsumption = Feed_Mt + Food_Mt + OtherUses_Mt) ->
+             CurrentConsumption = Food_Mt + OtherUses_Mt) ->
       L109.an_ALL_Mt_R_C_Y_5
 
     # Bind rows to get full table
