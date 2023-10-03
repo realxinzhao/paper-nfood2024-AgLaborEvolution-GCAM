@@ -103,6 +103,10 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
       bind_rows(mutate(L122.in_Mt_R_C_Yh, flow = "Biofuels_Mt")) %>%
       bind_rows(L101.ag_Storage_Mt_R_C_Y %>% rename(flow = element) %>%
                   filter(GCAM_commodity %in% Primary_commodities)) %>%
+      # in case L101.ag_Storage_Mt_R_C_Y is empty
+      bind_rows(tibble(`Opening stocks` = numeric(),
+                       `Closing stocks` = numeric(),
+                       `InterAnnualStockLoss` = numeric())) %>%
       # Get all combinations of each GCAM_commodity and flow, by spreading to wide format
       spread(flow, value) %>%
       # adjust for feedherb
@@ -304,6 +308,9 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
       bind_rows(L101.ag_Storage_Mt_R_C_Y %>% rename(flow = element) %>%
                   filter(GCAM_commodity %in% Meat_commodities)) %>%
       spread(flow, value) %>%
+      bind_rows(tibble(`Opening stocks` = numeric(),
+                       `Closing stocks` = numeric(),
+                       `InterAnnualStockLoss` = numeric())) %>%
       filter(year %in% aglu.AGLU_HISTORICAL_YEARS) %>%
       # Set missing values in the complete combinations to zero
       dplyr::mutate_if(is.numeric, list(~ replace(., is.na(.), 0))) %>%
