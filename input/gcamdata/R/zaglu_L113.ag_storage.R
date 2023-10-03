@@ -20,7 +20,9 @@ module_aglu_L113_ag_storage <- function(command, ...) {
     c(FILE = "common/GCAM_region_names",
       FILE = "aglu/A_agStorageSector",
       "L109.ag_ALL_Mt_R_C_Y",
-      "L109.an_ALL_Mt_R_C_Y")
+      "L109.an_ALL_Mt_R_C_Y",
+      "L1321.ag_prP_R_C_75USDkg",
+      "L1321.an_prP_R_C_75USDkg")
 
   MODULE_OUTPUTS <-
     c("L113.StorageTechAndPassThrough")
@@ -40,7 +42,63 @@ module_aglu_L113_ag_storage <- function(command, ...) {
     # so regional forest and total forest would be separated
 
 
-    # 1. Get storage data from the adjusted SUA balances ----
+    # 1. Prepare storage cost shares ----
+    # # USA storage cost (EU is likely similar to the US)
+    # # 12-month is about $0.4 per bu. higher than 6-month
+    # # $0.4 per bu. *  39.4 bu per tonne (Corn) = $16 per tonne
+    #
+    # USACornPrice <-
+    #   L1321.ag_prP_R_C_75USDkg %>%
+    #   filter(region == "USA", GCAM_commodity == "Corn") %>% pull(value)
+    #
+    # .35 * 39.4 * gdp_deflator(1975, 2015) / 1000 / USACornPrice
+    # # 9.5%
+    #
+    # # Africa storage cost
+    # # 12.5$ per tonne per year for PICS bag (ownership) adding 100% operation cost
+    # # 1.7$ per tonne per year for standard bags
+    # AfricaGrainPrice <-
+    #   L1321.ag_prP_R_C_75USDkg %>%
+    #   filter(grepl("Africa", region),
+    #          GCAM_commodity %in% c("Corn", "Rice", "OtherGrain", "Wheat")) %>%
+    #   summarize(value = mean(value))
+    #
+    # 12.5 * 2 * gdp_deflator(1975, 2015) / 1000 / AfricaGrainPrice
+    # (12.5 + 1.7)  * gdp_deflator(1975, 2015) / 1000 / AfricaGrainPrice
+    # # 4.7% - 8.3%
+    #
+    # # Middle East
+    # # $2 (1.69 Jordan - 3.47 Tunisia) per tonne per month in 2009
+    #
+    # MiddEastGrainPrice <-
+    #   L1321.ag_prP_R_C_75USDkg %>%
+    #   filter(grepl("Middle East", region),
+    #          GCAM_commodity %in% c("Corn", "Rice", "OtherGrain", "Wheat")) %>%
+    #   summarize(value = mean(value))
+    #
+    # 1.69 * 12 * gdp_deflator(1975, 2009) / 1000 / MiddEastGrainPrice
+    # 3.47 * 12 * gdp_deflator(1975, 2009) / 1000 / MiddEastGrainPrice
+    # # 4 - 9%
+
+    # Storage cost shares summary ----
+    # There is no available data of storage cost worldwide
+    # Based on the data points shown above (grains), the cost shares are usually in 4 - 10%
+    # However, the difference between the cost for interannual storage vs average storage is not clear.
+    # Storage cost vs. market price of commercial storage service could be another source of uncertainty.
+    # Here we will assume 8% of the price is the storage cost everywhere in all sectors.
+
+
+    ## Storage cost share in producer prices ----
+    InterAnnualStorageCostShare <- 0.08
+
+    L1321.ag_prP_R_C_75USDkg %>%
+      bind_rows(L1321.an_prP_R_C_75USDkg) %>%
+      filter(GCAM_commodity %in% (A_agStorageSector %>%
+                                    filter(storage_model == T) %>% pull(GCAM_commodity))) %>%
+      mutate(value = value * InterAnnualStorageCostShare) ->
+      L113.ClosingStockCost_R_C
+
+    # 2. Get storage data from the adjusted SUA balances ----
     # And get parameters ready
     L109.ag_ALL_Mt_R_C_Y %>%
       gather(element, value, -GCAM_commodity, -year, -GCAM_region_ID) %>%
@@ -60,7 +118,7 @@ module_aglu_L113_ag_storage <- function(command, ...) {
       L113.ag_Storage_Mt_R_C_Y_adj1
 
 
-    # 2. Compute loss-coefficients and arrange data to get table needed ----
+    # 3. Compute loss-coefficients and arrange data to get table needed ----
     L113.ag_Storage_Mt_R_C_Y_adj1 %>%
       spread(element, value) %>%
       mutate(LossCoef = 1 - InterAnnualStockLoss / `Closing stocks`) %>%
@@ -72,6 +130,15 @@ module_aglu_L113_ag_storage <- function(command, ...) {
                                     `Closing stocks` * LossCoef, Carryforward)) %>% ungroup %>%
       select(supplysector, region, year, LossCoef, `Closing stocks`, `Opening stocks`,
              Carryforward, logit.exponent, technology, minicam_energy_input, GCAM_commodity, storage_model) ->
+      L113.ag_Storage_Mt_R_C_Y_adj2
+
+
+    ## Join storage cost ----
+    L113.ag_Storage_Mt_R_C_Y_adj2 %>%
+      left_join(L113.ClosingStockCost_R_C %>%
+                  select(region, GCAM_commodity, ClosingStockCost = value),
+                by = c("region", "GCAM_commodity")) %>%
+      replace_na(list(ClosingStockCost = 0))->
       L113.ag_Storage_Mt_R_C_Y_adj
 
 
@@ -96,7 +163,7 @@ module_aglu_L113_ag_storage <- function(command, ...) {
                        year,
                        share.weight = 1,
                        logit.exponent,
-                       storage.cost = 0,
+                       storage.cost = ClosingStockCost,
                        closing.stock = `Closing stocks`,
                        loss.coefficient = LossCoef,
                        opening.stock = Carryforward,
