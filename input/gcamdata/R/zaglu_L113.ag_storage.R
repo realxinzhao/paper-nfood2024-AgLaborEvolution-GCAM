@@ -192,7 +192,9 @@ module_aglu_L113_ag_storage <- function(command, ...) {
       add_precursors("common/GCAM_region_names",
                      "aglu/A_agStorageSector",
                      "L109.ag_ALL_Mt_R_C_Y",
-                     "L109.an_ALL_Mt_R_C_Y") ->
+                     "L109.an_ALL_Mt_R_C_Y",
+                     "L1321.ag_prP_R_C_75USDkg",
+                     "L1321.an_prP_R_C_75USDkg") ->
       L113.StorageTechAndPassThrough
 
 
