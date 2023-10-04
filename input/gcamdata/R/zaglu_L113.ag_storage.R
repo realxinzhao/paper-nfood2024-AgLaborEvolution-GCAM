@@ -163,6 +163,7 @@ module_aglu_L113_ag_storage <- function(command, ...) {
                        year,
                        share.weight = 1,
                        logit.exponent,
+                       logit.type = NA, # Note that this is not used but added to avoid warnings
                        storage.cost = ClosingStockCost,
                        closing.stock = `Closing stocks`,
                        loss.coefficient = LossCoef,
@@ -189,6 +190,7 @@ module_aglu_L113_ag_storage <- function(command, ...) {
     L113.StorageTechAndPassThrough %>%
       add_title("Ag storage data and parameter assumptions") %>%
       add_units("various") %>%
+      add_comments("Table inlcudes the data and parameter of the storage tech or the pass-through sector of generating, e.g., regional corn from total corn") %>%
       add_precursors("common/GCAM_region_names",
                      "aglu/A_agStorageSector",
                      "L109.ag_ALL_Mt_R_C_Y",
