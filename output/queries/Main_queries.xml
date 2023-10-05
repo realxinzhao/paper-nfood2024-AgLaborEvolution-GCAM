@@ -4246,6 +4246,24 @@ element input {
                contains(@name, 'ag-storage')]/share-weight/node()</xPath>
                 <comments/>
             </supplyDemandQuery>
+            <supplyDemandQuery title="storage cost">
+                <axis1 name="technology">technology</axis1>
+                <axis2 name="Year">technology</axis2>
+                <xPath buildList="true" dataName="output" group="false" sumAll="false">*[@type='sector' and
+               contains(@name, 'regional')]/
+               *[@type='subsector']/*[@type='technology' and
+               contains(@name, 'ag-storage')]/storage-cost/text()</xPath>
+                <comments/>
+            </supplyDemandQuery>
+            <supplyDemandQuery title="expected price">
+                <axis1 name="technology">technology</axis1>
+                <axis2 name="Year">technology</axis2>
+                <xPath buildList="true" dataName="output" group="false" sumAll="false">*[@type='sector' and
+               contains(@name, 'regional')]/
+               *[@type='subsector']/*[@type='technology' and
+               contains(@name, 'ag-storage')]/adj-exp-price/text()</xPath>
+                <comments/>
+            </supplyDemandQuery>
         </queryGroup>
     </queryGroup>
     <queryGroup name="emissions">

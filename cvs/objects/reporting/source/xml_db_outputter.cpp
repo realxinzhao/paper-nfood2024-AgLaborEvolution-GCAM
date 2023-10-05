@@ -850,6 +850,13 @@ void XMLDBOutputter::startVisitTechnology( const Technology* aTechnology, const 
         writeItemToBuffer(openStock, "opening-stock",
             *childBuffer, mTabs.get(), 0, mCurrentOutputUnit);
 
+        writeItemToBuffer(agStorageTech->mStorageCost, "storage-cost",
+            *childBuffer, mTabs.get(), 0, mCurrentOutputUnit);
+
+        writeItemToBuffer(agStorageTech->mAdjExpectedPrice, "adj-exp-price",
+            *childBuffer, mTabs.get(), 0, mCurrentOutputUnit);
+
+
     }
 }
 
