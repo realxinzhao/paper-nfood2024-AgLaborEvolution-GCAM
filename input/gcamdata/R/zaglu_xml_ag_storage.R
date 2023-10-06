@@ -38,6 +38,7 @@ module_aglu_batch_ag_storage_xml <- function(command, ...) {
     L113.StorageTechAndPassThrough %>%
       filter(storage_model == FALSE) %>%
       rename(technology = food.storage.technology) %>%
+      mutate(technology = "no-storage-pass-through") %>%
       mutate(minicam.non.energy.input = "border-cost", input.cost = 0) ->
       L113.PassThroughTable
 
@@ -76,7 +77,8 @@ module_aglu_batch_ag_storage_xml <- function(command, ...) {
     # 1. tables ready for StorageTech commodities ----
 
     fst_interp <-
-      L113.ag_Storage_region_supplysector %>%
+      L113.StorageTechTable %>%
+      distinct(region, supplysector, food.storage.technology) %>%
       dplyr::transmute(region, supplysector,
                        subsector = supplysector,
                        food.storage.technology,
@@ -110,6 +112,7 @@ module_aglu_batch_ag_storage_xml <- function(command, ...) {
 
     passthrough_interp <-
       L113.PassThroughTable %>%
+      distinct(region, supplysector, technology) %>%
       dplyr::transmute(region, supplysector,
                        subsector = supplysector,
                        technology,

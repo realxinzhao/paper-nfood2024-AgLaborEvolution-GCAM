@@ -248,7 +248,7 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
     # Stocks is adjusted
 
     L109.ag_ALL_Mt_R_C_Y %>%
-      mutate(CurrentConsumption = Feed_Mt + Food_Mt + OtherUses_Mt) ->
+      mutate(CurrentConsumption = Biofuels_Mt + Feed_Mt + Food_Mt + OtherUses_Mt) ->
       L109.ag_ALL_Mt_R_C_Y_4
 
     # Adjustment is very simple since we do not have balance constraint of stock carryover
@@ -260,7 +260,7 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
              GCAM_commodity %in% Storage_commodities) %>%
       mutate(OtherUses_Mt = 0.01 * `Closing stocks`,
              `Closing stocks` = `Closing stocks` - OtherUses_Mt,
-             CurrentConsumption = Feed_Mt + Food_Mt + OtherUses_Mt) ->
+             CurrentConsumption = Biofuels_Mt + Feed_Mt + Food_Mt + OtherUses_Mt) ->
       L109.ag_ALL_Mt_R_C_Y_5
 
     # Bind rows to get full table
