@@ -195,7 +195,7 @@ void AgStorageTechnology::production(const string& aRegionName,
                 mShareWeight = 0;
                 ILogger& mainLog = ILogger::getLogger("main_log");
                 mainLog.setLevel(ILogger::WARNING);
-                mainLog << "No consumption and positive closing stock in " << aRegionName << " " << mName << endl;
+                mainLog << "No consumption and positive closing stock in " << aRegionName << " " << aSectorName << endl;
             }
             else {
                 mShareWeight = mClosingStock / ((pow(mAdjExpectedPrice / mInputs[0]->getPrice(aRegionName, aPeriod), mLogitExponent)) * mConsumption);
