@@ -189,7 +189,6 @@ aglu.MODEL_PRICE_YEARS      <- 2013:2017 # consistent with aglu.MODEL_SUA_MEAN_P
 aglu.MODEL_MACRONUTRIENT_YEARS <- 2013:2017   # consistent with aglu.MODEL_SUA_MEAN_PERIODS; FAO only has data for after 2010
 aglu.MODEL_COST_YEARS       <- 2008:2016
 aglu.DEFLATOR_BASE_YEAR     <- 2015      # year used as the basis for computing regional price deflators
-aglu.FALLOW_YEARS           <- 2013:2017 # Years used for calculating the % of fallow land
 aglu.AGLU_HISTORICAL_YEARS  <- 1973:2015
 aglu.BASE_YEAR_IFA          <- 2006      # Base year of International Fertilizer Industry Association (IFA) fertilizer application data
 aglu.BIO_START_YEAR         <- 2025      # Also set in aglu/A_bio_ghost_share
@@ -238,13 +237,6 @@ aglu.CCONTENT_CELLULOSE    <- 0.45
 
 # Conversion from peak biomass to average biomass integrated over the course of the year
 aglu.CCONV_PEAK_AVG <- 0.5
-
-# Constraints for the minimum and maximum harvested:cropped ratios
-# Source: Dalrymple, D.G. 1971, Survey of Multiple Cropping in Less Developed Nations, Foreign Econ. Dev. Serv., U.S. Dep. of Agricul., Washington, D.C.
-# Cited in: Monfreda et al. 2008, Farming the Planet: 2., Global Biogeochemical Cycles 22, GB1022, http://dx.doi.org/10.1029/2007GB002947
-aglu.MIN_HA_TO_CROPLAND <- 1  # minimum harvested:cropped ratios
-aglu.MAX_HA_TO_CROPLAND <- 3  # maximum harvested:cropped ratios
-
 
 # Production constraints
 aglu.MAX_MGDPAST_FRAC <- 0.95 # Maximum percentage of any region/GLUs pasture that is allowed to be in managed production.
