@@ -204,7 +204,7 @@ module_aglu_L122.LC_R_Cropland_Yh_GLU <- function(command, ...) {
 
      L122.ag_HA_bm2_R_Y_GLU %>%
        # conservative approach of using adjusted FAO CHF as max value
-       left_join_error_no_match(L122.FAO_AnnualCrop_CHF_R) %>%
+       left_join_error_no_match(L122.FAO_AnnualCrop_CHF_R, by = "GCAM_region_ID") %>%
        mutate(Cropland_min = Annual / FAOAnnualCHF + Perennial)  %>%
 
       # Old approach
