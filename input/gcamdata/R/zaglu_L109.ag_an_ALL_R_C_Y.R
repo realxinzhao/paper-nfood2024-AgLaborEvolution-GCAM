@@ -192,7 +192,7 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
                OtherUses_Mt = if_else(negOther == "Pos", OtherUses_Mt - OtherUses_Mt * World_pos_scaler, OtherUses_Mt)) %>%
         select(-negOther, -World_pos_scaler) %>%
         mutate(NetExp_Mt = GrossExp_Mt - GrossImp_Mt,
-               Supply_Mt = Prod_Mt - NetExp_Mt)
+               Supply_Mt = `Opening stocks` + Prod_Mt - NetExp_Mt)
     ) ->
     L109.ag_ALL_Mt_R_C_Y_2
 
@@ -484,6 +484,13 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
              GrossExp_Mt = if_else(GrossExp_Mt > Prod_Mt,
                                    Prod_Mt, GrossExp_Mt)) ->
       L109.an_ALL_Mt_R_C_Y
+
+    # Final thought:
+    # including storage improves the other use data
+    # in the case of negative values adj. with storage smaller adj. is needed
+    # but cannot be avoided due to other reasons (residuals)
+    # And note that trade could have been adjusted to ship negative other use around
+    # so even initial trade data could be slightly different!
 
     # Produce outputs
     L109.ag_ALL_Mt_R_C_Y %>%
