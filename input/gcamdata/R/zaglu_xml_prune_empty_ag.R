@@ -263,7 +263,7 @@ module_aglu_prune_empty_ag_xml <- function(command, ...) {
       add_xml_data(empty_ag_subsec %>% rename(supplysector = AgSupplySector, subsector = AgSupplySubsector), "DeleteSubsector") %>%
       add_xml_data(empty_ag_sec %>% rename(supplysector = AgSupplySector), "DeleteSupplysector") %>%
       add_xml_data(empty_ag_tra, "DeleteSubsector") %>%
-      #add_xml_data(empty_ag_reg, "DeleteSubsector") %>%
+      add_xml_data(empty_ag_reg, "DeleteSubsector") %>%
       add_xml_data(empty_foddergrass, "DeleteSubsector") %>%
       add_precursors("L2012.AgProduction_ag_irr_mgmt",
                      "L240.TechCoef_tra",
