@@ -248,7 +248,8 @@ module_aglu_prune_empty_ag_xml <- function(command, ...) {
                   filter(storage_model == TRUE) %>%
                   distinct(region, supplysector = minicam.energy.input) %>%
                   mutate(StorageComm = T), by = c("region", "supplysector")) %>%
-      filter(StorageComm != TRUE) ->
+      filter(is.na(StorageComm)) %>%
+      select(-StorageComm)->
       empty_ag_reg
 
 
