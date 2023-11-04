@@ -100,8 +100,9 @@ module_aglu_L125.LC_tot <- function(command, ...) {
     # We don't do this under timeshift because the tolerance check fails...and it's not clear if that means anything or not
 
     # remove this check as it is not necessary and the total land check is added above
-      UNDER_TIMESHIFT = T
-    if(!UNDER_TIMESHIFT) {
+    # In L122, the harvested area adjustment was only done for Base Years
+    # It should be extended to all years if there are issues here
+    if(UNDER_TIMESHIFT) {
       L125.LC_bm2_R_Yh_GLU %>%
         filter(year %in% aglu.AGLU_HISTORICAL_YEARS) %>%
         arrange(GCAM_region_ID, GLU, year) %>%
