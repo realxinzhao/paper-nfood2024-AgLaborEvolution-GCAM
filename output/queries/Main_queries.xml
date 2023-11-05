@@ -1782,7 +1782,7 @@ local:generate-sector-input-coefs(remove($outputNameQueue, 1), $currTree, $coefs
                *[@type='subsector']/*[@type='technology']/cost/text()</xPath>
                     <comments/>
                 </supplyDemandQuery>
-				<supplyDemandQuery title="hydrogen technology IO coefficients">
+                <supplyDemandQuery title="hydrogen technology IO coefficients">
                     <axis1 name="sector">sector</axis1>
                     <axis2 name="Year">IO-coefficient[@vintage]</axis2>
                     <xPath buildList="true" dataName="input" group="false" sumAll="false">*[@type='sector' and contains(@name,'H2')]/*[@type='subsector']/
@@ -3574,56 +3574,55 @@ element input {
                 <comments/>
                 <labelRewriteList append-values="false">
                     <level name="LandLeaf">
-                        <rewrite from="Grassland" to="grass"/>
-                        <rewrite from="ProtectedUnmanagedPasture" to="pasture (other)"/>
                         <rewrite from="Vegetables" to="crops"/>
-                        <rewrite from="FodderHerb" to="crops"/>
-                        <rewrite from="MiscCrop" to="crops"/>
                         <rewrite from="OtherGrainC4" to="crops"/>
                         <rewrite from="PalmFruit" to="crops"/>
                         <rewrite from="FiberCrop" to="crops"/>
                         <rewrite from="NutsSeeds" to="crops"/>
-                        <rewrite from="OtherGrain" to="crops"/>
-                        <rewrite from="Soybean" to="crops"/>
-                        <rewrite from="FodderGrass" to="crops"/>
                         <rewrite from="ProtectedGrassland" to="grass"/>
-                        <rewrite from="ProtectedUnmanagedHardwood_Forest" to="forest (unmanaged)"/>
-                        <rewrite from="ProtectedUnmanagedSoftwood_Forest" to="forest (unmanaged)"/>
                         <rewrite from="Fruits" to="crops"/>
                         <rewrite from="FodderHerbC4" to="crops"/>
                         <rewrite from="ProtectedUnmanagedForest" to="forest (unmanaged)"/>
                         <rewrite from="biomassTree" to="biomass"/>
+                        <rewrite from="MiscCropTree" to="crops"/>
+                        <rewrite from="Legumes" to="crops"/>
+                        <rewrite from="RockIceDesert" to="rock and desert"/>
+                        <rewrite from="RootTuber" to="crops"/>
+                        <rewrite from="OilCrop" to="crops"/>
+                        <rewrite from="Shrubland" to="shrubs"/>
+                        <rewrite from="UnmanagedPasture" to="pasture (other)"/>
+                        <rewrite from="Wheat" to="crops"/>
+                        <rewrite from="CornC4" to="crops"/>
+                        <rewrite from="Grassland" to="grass"/>
+                        <rewrite from="ProtectedUnmanagedPasture" to="pasture (other)"/>
+                        <rewrite from="FodderHerb" to="crops"/>
+                        <rewrite from="ProtectedUnmanagedSoftwood_Forest" to="forest (unmanaged)"/>
+                        <rewrite from="MiscCrop" to="crops"/>
+                        <rewrite from="OtherGrain" to="crops"/>
+                        <rewrite from="Soybean" to="crops"/>
+                        <rewrite from="FodderGrass" to="crops"/>
                         <rewrite from="OilPalm" to="crops"/>
                         <rewrite from="OtherArableLand" to="otherarable"/>
-                        <rewrite from="MiscCropTree" to="crops"/>
                         <rewrite from="OilPalmTree" to="crops"/>
+                        <rewrite from="Hardwood_Forest" to="forest (managed)"/>
                         <rewrite from="Rice" to="crops"/>
-                        <rewrite from="Legumes" to="crops"/>
+                        <rewrite from="UnmanagedHardwood_Forest" to="forest (unmanaged)"/>
                         <rewrite from="NutsSeedsTree" to="crops"/>
                         <rewrite from="OilCropTree" to="crops"/>
                         <rewrite from="UrbanLand" to="urban"/>
-                        <rewrite from="RockIceDesert" to="rock and desert"/>
-                        <rewrite from="RootTuber" to="crops"/>
+                        <rewrite from="ProtectedUnmanagedHardwood_Forest" to="forest (unmanaged)"/>
                         <rewrite from="Corn" to="crops"/>
                         <rewrite from="FruitsTree" to="crops"/>
-                        <rewrite from="OilCrop" to="crops"/>
                         <rewrite from="ProtectedShrubland" to="shrubs"/>
                         <rewrite from="SugarCrop" to="crops"/>
-                        <rewrite from="SugarCropC4" to="crops"/>
-                        <rewrite from="UnmanagedHardwood_Forest" to="forest (unmanaged)"/>
-                        <rewrite from="UnmanagedSoftwood_Forest" to="forest (unmanaged)"/>
                         <rewrite from="UnmanagedForest" to="forest (unmanaged)"/>
                         <rewrite from="SugarCropC4" to="crops"/>
                         <rewrite from="Pasture" to="pasture (grazed)"/>
-                        <rewrite from="Hardwood_Forest" to="forest (managed)"/>
-                        <rewrite from="Softwood_Forest" to="forest (managed)"/>
                         <rewrite from="Forest" to="forest (managed)"/>
                         <rewrite from="biomassGrass" to="biomass"/>
-                        <rewrite from="Shrubland" to="shrubs"/>
-                        <rewrite from="UnmanagedPasture" to="pasture (other)"/>
+                        <rewrite from="Softwood_Forest" to="forest (managed)"/>
+                        <rewrite from="UnmanagedSoftwood_Forest" to="forest (unmanaged)"/>
                         <rewrite from="Tundra" to="tundra"/>
-                        <rewrite from="Wheat" to="crops"/>
-                        <rewrite from="CornC4" to="crops"/>
                     </level>
                 </labelRewriteList>
             </query>
@@ -4204,13 +4203,13 @@ element input {
             </supplyDemandQuery>
         </queryGroup>
         <queryGroup name="ag storage">
-            <supplyDemandQuery title="opening stock (supply from carryover)">
+            <supplyDemandQuery title="opening stocks (supply from carryover)">
                 <axis1 name="technology">technology[@name]</axis1>
                 <axis2 name="Year">physical-output[@vintage]</axis2>
                 <xPath buildList="true" dataName="output" group="false" sumAll="false">*[@type='sector']/*[@type='subsector' and contains(@name, 'regional')]/*[@type='technology']/res-secondary-output[@type='output']/physical-output/node()</xPath>
                 <comments/>
             </supplyDemandQuery>
-            <supplyDemandQuery title="closing stock (before loss/adjustments)">
+            <supplyDemandQuery title="closing stocks (before loss/adjustments)">
                 <axis1 name="technology">technology</axis1>
                 <axis2 name="Year">technology</axis2>
                 <xPath buildList="true" dataName="output" group="false" sumAll="false">*[@type='sector' and
@@ -4219,7 +4218,7 @@ element input {
                contains(@name, 'ag-storage')]/closing-stock/text()</xPath>
                 <comments/>
             </supplyDemandQuery>
-            <supplyDemandQuery title="closing stock (after loss/adjustments; carried over)">
+            <supplyDemandQuery title="closing stocks (after loss/adjustments; carried over)">
                 <axis1 name="technology">technology</axis1>
                 <axis2 name="Year">technology</axis2>
                 <xPath buildList="true" dataName="output" group="false" sumAll="false">*[@type='sector' and
@@ -4228,7 +4227,7 @@ element input {
                contains(@name, 'ag-storage')]/opening-stock/text()</xPath>
                 <comments/>
             </supplyDemandQuery>
-            <supplyDemandQuery title="total supply (current + future consumption)">
+            <supplyDemandQuery title="current supply (current or regional consumption)">
                 <axis1 name="input">input</axis1>
                 <axis2 name="Year">demand-physical[@vintage]</axis2>
                 <xPath buildList="true" dataName="input" group="false" sumAll="false">*[@type='sector' and contains(@name, 'regional')]/*[@type='subsector']//*[@type='input' and contains(@name, 'total')]/demand-physical[@unit='Mt' or @unit='billion m3']/node()</xPath>
@@ -5192,7 +5191,6 @@ A user can adjust the query to search for any of:
                 <xPath buildList="true" dataName="input" group="false" sumAll="false">*[@type='sector']/*[@type='subsector']/*[@type='technology']/*[@type='input']/IO-coefficient[@vintage=parent::*/parent::*/@year]/node()</xPath>
                 <comments/>
             </supplyDemandQuery>
-
         </queryGroup>
     </queryGroup>
     <queryGroup name="GCAM USA">

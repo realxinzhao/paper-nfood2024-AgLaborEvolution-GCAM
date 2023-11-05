@@ -45,14 +45,22 @@ module_aglu_L113_ag_storage <- function(command, ...) {
     # 1. Prepare storage cost shares ----
     # # USA storage cost (EU is likely similar to the US)
     # # 12-month is about $0.4 per bu. higher than 6-month
-    # # $0.4 per bu. *  39.4 bu per tonne (Corn) = $16 per tonne
+    # # $0.2-0.4 per bu. *  39.4 bu per tonne (Corn) = $16 per tonne
+
     #
     # USACornPrice <-
     #   L1321.ag_prP_R_C_75USDkg %>%
     #   filter(region == "USA", GCAM_commodity == "Corn") %>% pull(value)
-    #
-    # .35 * 39.4 * gdp_deflator(1975, 2015) / 1000 / USACornPrice
-    # # 9.5%
+
+
+    # .2 * 39.4 * gdp_deflator(1975, 2015) / 1000 / USACornPrice
+    # .4 * 39.4 * gdp_deflator(1975, 2015) / 1000 / USACornPrice
+    # 5.4% - 10.8%
+
+    # If directly using Iowa storage cost model
+    # Corn 11% - 13%    Last 6 month: 3% - 7%
+    # Soybean 1% - 8%   Last 6 month: 3% - 5%
+    # soybeans would be smaller in total, but similarly in marginal
     #
     # # Africa storage cost
     # # 12.5$ per tonne per year for PICS bag (ownership) adding 100% operation cost
@@ -61,11 +69,15 @@ module_aglu_L113_ag_storage <- function(command, ...) {
     #   L1321.ag_prP_R_C_75USDkg %>%
     #   filter(grepl("Africa", region),
     #          GCAM_commodity %in% c("Corn", "Rice", "OtherGrain", "Wheat")) %>%
-    #   summarize(value = mean(value))
+    #   summarize(value = mean(value)) %>% pull
     #
+    # Assuming other overhead cost is 2 time bag costs
     # 12.5 * 2 * gdp_deflator(1975, 2015) / 1000 / AfricaGrainPrice
+    # (1.7) * 2  * gdp_deflator(1975, 2015) / 1000 / AfricaGrainPrice
     # (12.5 + 1.7)  * gdp_deflator(1975, 2015) / 1000 / AfricaGrainPrice
     # # 4.7% - 8.3%
+
+    # Assuming 50% is marginal: 2.3% - 4.2%
     #
     # # Middle East
     # # $2 (1.69 Jordan - 3.47 Tunisia) per tonne per month in 2009
@@ -74,22 +86,24 @@ module_aglu_L113_ag_storage <- function(command, ...) {
     #   L1321.ag_prP_R_C_75USDkg %>%
     #   filter(grepl("Middle East", region),
     #          GCAM_commodity %in% c("Corn", "Rice", "OtherGrain", "Wheat")) %>%
-    #   summarize(value = mean(value))
+    #   summarize(value = mean(value)) %>% pull
     #
     # 1.69 * 12 * gdp_deflator(1975, 2009) / 1000 / MiddEastGrainPrice
     # 3.47 * 12 * gdp_deflator(1975, 2009) / 1000 / MiddEastGrainPrice
     # # 4 - 9%
+    # Assuming 50% is marginal: 2% - 4.5%
 
     # Storage cost shares summary ----
     # There is no available data of storage cost worldwide
-    # Based on the data points shown above (grains), the cost shares are usually in 4 - 10%
+    # Based on the data points shown above (grains), the cost shares (marginal; second-half of the year)
+    # are usually in 2 - 7%
     # However, the difference between the cost for interannual storage vs average storage is not clear.
     # Storage cost vs. market price of commercial storage service could be another source of uncertainty.
-    # Here we will assume 8% of the price is the storage cost everywhere in all sectors.
+    # Here we will assume 3% of the price is the storage cost everywhere in all sectors.
 
 
     ## Storage cost share in producer prices ----
-    InterAnnualStorageCostShare <- 0.08
+    InterAnnualStorageCostShare <- 0.03
 
     L1321.ag_prP_R_C_75USDkg %>%
       bind_rows(L1321.an_prP_R_C_75USDkg) %>%

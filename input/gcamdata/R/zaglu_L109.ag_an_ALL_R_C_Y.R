@@ -293,6 +293,31 @@ module_aglu_L109.ag_an_ALL_R_C_Y <- function(command, ...) {
       L109.ag_ALL_Mt_R_C_Y
 
 
+    ## Addressing zero OtherUse (1975) ----
+
+    # 1975 model warnings due to zero Feed + OtherUse
+    # There are 7 places with zero Feed + OtherUse in min(MODEL_BASE_YEARS)
+    ## We add tiny value in OtherUse by moving closing storage to there
+
+    L109.ag_ALL_Mt_R_C_Y %>%
+      filter(year %in% min(MODEL_BASE_YEARS) & `Closing stocks` > 0 & OtherUses_Mt == 0 & Feed_Mt == 0) %>%
+      mutate(StockMove = pmin(0.01, `Closing stocks` * 0.1), # lower one in 1% storage or 0.01 Mt
+             # Maintain loss rates
+             LossMove = InterAnnualStockLoss / `Closing stocks` * StockMove,
+             OtherUses_Mt = OtherUses_Mt + StockMove + LossMove,
+             `Closing stocks` = `Closing stocks` - StockMove,
+             InterAnnualStockLoss = InterAnnualStockLoss - LossMove) %>%
+      select(-LossMove, -StockMove) ->
+      L109.ag_ALL_Mt_R_C_Y_7
+
+    # Bind others back
+    L109.ag_ALL_Mt_R_C_Y %>%
+      anti_join(L109.ag_ALL_Mt_R_C_Y_7,
+                by = c("GCAM_commodity", "year", "GCAM_region_ID")) %>%
+      bind_rows(L109.ag_ALL_Mt_R_C_Y_7) %>%
+      arrange(year, GCAM_commodity, GCAM_region_ID) ->
+      L109.ag_ALL_Mt_R_C_Y
+
 
     # Part 2: Animal commodities ----
 
