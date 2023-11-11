@@ -86,9 +86,6 @@ module_aglu_batch_ag_storage_xml <- function(command, ...) {
                        from.year = MODEL_FINAL_BASE_YEAR, to.year = max(MODEL_YEARS), interpolation.function = "fixed") %>%
       select(LEVEL2_DATA_NAMES[["FoodTechInterp"]])
 
-    fst_extra <-
-      L113.StorageTechTable %>%
-      select(LEVEL2_DATA_NAMES[["FoodTech"]])
 
     fst_extra <-
       L113.StorageTechTable %>%
@@ -100,8 +97,18 @@ module_aglu_batch_ag_storage_xml <- function(command, ...) {
           filter(year == min(MODEL_FUTURE_YEARS)) %>% select(-year) %>%
           # Note that the first future year was included above
           repeat_add_columns(tibble(year = MODEL_FUTURE_YEARS[-1])) %>%
-          mutate(opening.stock = 0, closing.stock = 0)
+          mutate(opening.stock = 0, closing.stock = 0) %>%
+          filter(!is.na(region))
       )
+
+    # Lower loss scenario
+    # fst_extra %>%
+    #   mutate(loss.coefficient = if_else(year >= 2050, 1, loss.coefficient),
+    #          loss.coefficient = if_else(year < 2050 & year > 2020, NA_real_, loss.coefficient)) %>%
+    #   arrange(year) %>%
+    #   dplyr::group_by_at(vars(region:food.storage.technology)) %>%
+    #   mutate(loss.coefficient = approx_fun(year, loss.coefficient)) %>%
+    #   ungroup() -> fst_extra
 
     fst_coef <-
       L113.StorageTechTable %>%
@@ -115,7 +122,8 @@ module_aglu_batch_ag_storage_xml <- function(command, ...) {
           # Add cost to future years as the last base year
           filter(year == min(MODEL_FUTURE_YEARS)) %>% select(-year) %>%
           # Note that the first future year was included above
-          repeat_add_columns(tibble(year = MODEL_FUTURE_YEARS[-1]))
+          repeat_add_columns(tibble(year = MODEL_FUTURE_YEARS[-1])) %>%
+          filter(!is.na(region))
       )
 
     # The cost here is not really useful for storage. It is cost to main product
@@ -136,7 +144,8 @@ module_aglu_batch_ag_storage_xml <- function(command, ...) {
             # Add cost to future years as the last base year
             filter(year == min(MODEL_FUTURE_YEARS)) %>% select(-year) %>%
             # Note that the first future year was included above
-            repeat_add_columns(tibble(year = MODEL_FUTURE_YEARS[-1]))
+            repeat_add_columns(tibble(year = MODEL_FUTURE_YEARS[-1])) %>%
+            filter(!is.na(region))
         )
 
 
