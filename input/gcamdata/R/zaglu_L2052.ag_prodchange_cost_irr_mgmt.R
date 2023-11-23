@@ -1,5 +1,4 @@
 # Copyright 2019 Battelle Memorial Institute; see the LICENSE file.
-
 #' module_aglu_L2052.ag_prodchange_cost_irr_mgmt
 #'
 #' Specify production costs and future agricultural productivity changes for all technologies.
@@ -17,7 +16,6 @@
 #' @importFrom tidyr replace_na separate
 #' @author RC July 2017
 module_aglu_L2052.ag_prodchange_cost_irr_mgmt <- function(command, ...) {
-
   MODULE_INPUTS <-
     c(FILE = "common/GCAM_region_names",
       FILE = "water/basin_to_country_mapping",
@@ -32,8 +30,8 @@ module_aglu_L2052.ag_prodchange_cost_irr_mgmt <- function(command, ...) {
       "L201.AgYield_bio_grass",
       "L201.AgYield_bio_tree",
       "L102.pcgdp_thous90USD_Scen_R_Y",
-      "L1321.expP_R_F_75USDm3")
-
+      "L1321.expP_R_F_75USDm3",
+      "L100.GTAPCostShare_AgLU_reg_comm")
   MODULE_OUTPUTS <-
     c("L2052.AgCost_ag_irr_mgmt",
       "L2052.AgCalMinProfitRate",
@@ -44,29 +42,57 @@ module_aglu_L2052.ag_prodchange_cost_irr_mgmt <- function(command, ...) {
       "L2052.AgProdChange_irr_high",
       "L2052.AgProdChange_irr_low",
       "L2052.AgProdChange_irr_ssp4")
-
   if(command == driver.DECLARE_INPUTS) {
     return(MODULE_INPUTS)
   } else if(command == driver.DECLARE_OUTPUTS) {
     return(MODULE_OUTPUTS)
   } else if(command == driver.MAKE) {
-
     all_data <- list(...)[[1]]
-
     names_AgTech <- names_AgCost <- names_AgProdChange <- GLU <- GLU_name <- IRR_RFD <-
       MGMT <- AgSupplySector <- AgSupplySubsector <- AgProductionTechnology <-
       AgProdChange <- nonLandVariableCost <- high_reg <- low_reg <- region <-
       GCAM_region_ID <- year <- value <- GCAM_commodity <- Cost_75USDkg <-
       Irr_Rfd <- scenario <- calPrice <- cost_PrP_ratio <- . <- GCAM_subsector <- NULL  # silence package check notes
-
     # Load required inputs ----
     get_data_list(all_data, MODULE_INPUTS, strip_attributes = TRUE)
-
+    # Get GTAP cost shares ready
+    L100.GTAPCostShare_AgLU_reg_comm %>%
+      select(-year, -value) %>% distinct() %>%
+      repeat_add_columns(tibble::tibble(year = HISTORICAL_YEARS)) %>%
+      left_join(L100.GTAPCostShare_AgLU_reg_comm,
+                by = c("GCAM_region_ID", "GCAM_commodity", "input", "year")) %>%
+      group_by(GCAM_region_ID, GCAM_commodity, input) %>%
+      mutate(value = approx_fun(year, value, rule = 2)) %>%
+      ungroup() %>%
+      filter(year %in% MODEL_BASE_YEARS) ->
+      L2052.AgCostShare_reg
+    assertthat::assert_that(
+      L164.ag_Cost_75USDkg_C %>% distinct(GCAM_commodity) %>% pull %in%
+        (L2052.AgCostShare_reg %>% distinct(GCAM_commodity) %>% pull) %>%
+        all)
+    L2052.AgCostShare_reg %>%
+      right_join(L164.ag_Cost_75USDkg_C %>% distinct(GCAM_commodity), by = "GCAM_commodity") %>%
+      # remove self use (AgLU) and water cost
+      filter(!input %in% c("Water", "AgLU")) %>%
+      group_by(GCAM_region_ID, GCAM_commodity, year) %>%
+      mutate(value = value / sum(value)) %>% ungroup() %>%
+      filter(input == "Land") %>%
+      mutate(value = 1 - value) %>%
+      select(-input) %>%
+      left_join_error_no_match(GCAM_region_names, by = "GCAM_region_ID") ->
+      L2052.AgCostShare_reg_nonLand
+    L2052.AgCostShare_reg_nonLand %>%
+      bind_rows(
+        L2052.AgCostShare_reg_nonLand %>%
+          filter(year == dplyr::last(MODEL_BASE_YEARS)) %>%
+          select(-year) %>%
+          repeat_add_columns(tibble(year = MODEL_FUTURE_YEARS))
+      ) ->
+      L2052.AgCostShare_reg_nonLand_yr
     # Define column names
     names_AgTech <- LEVEL2_DATA_NAMES[["AgTech"]]
     names_AgCost <- LEVEL2_DATA_NAMES[["AgCost"]]
     names_AgProdChange <- LEVEL2_DATA_NAMES[["AgProdChange"]]
-
     # Production costs ----
     # Assign nonLandVariableCost of crop production, assuming the same level to all four technologies
     # Start with the L161 production tables to specify which region / GLU / crop will need costs assigned
@@ -91,18 +117,15 @@ module_aglu_L2052.ag_prodchange_cost_irr_mgmt <- function(command, ...) {
       repeat_add_columns(tibble(year = MODEL_YEARS)) %>%
       select(names_AgCost) ->
       L2052.AgCost_ag_irr_mgmt
-
     # 2/14/2019 ag trade modification (GPK): These costs need to be modified in order to accommodate any crops with
     # regional markets, whose prices differ from the default (USA-based) assumptions for global markets. Failure to
     # take this into account will result in inconsistency between cost assumptions (which are based on the USA) and
     # crop prices, which may return distorted and potentially negative profit rates.
-
     # 9/23/2019 modification - the producer price data in L132 comes from a direct query of the "United States of
     # America" country in FAOSTAT, whereas the L1321 and L2012 data come from a global query with regions mapped
     # according to AGLU_ctry. For this reason, the latter datasets include Puerto Rico within the USA region. This
     # causes a mismatch in computing costs and prices, and can lead to negative profit rates for crops that (a) tend to
     # be grown in Puerto Rico, and (b) have lower producer prices in Puerto Rico than in the USA.
-
     # Specifically, the method applies the cost:price ratio of each crop in the USA to each crop in all regions
     # L132.ag_an_For_Prices %>% filter(GCAM_commodity %in% L164.ag_Cost_75USDkg_C$GCAM_commodity) %>% mutate(region = gcam.USA_REGION)
     # L132.ag_an_For_Prices is replaced with L1321.ag_prP_R_C_75USDkg for consistency
@@ -111,17 +134,20 @@ module_aglu_L2052.ag_prodchange_cost_irr_mgmt <- function(command, ...) {
       filter(GCAM_commodity %in% L164.ag_Cost_75USDkg_C$GCAM_commodity) %>%
       select(region, GCAM_commodity, calPrice = value) %>%
       left_join_error_no_match(L164.ag_Cost_75USDkg_C, by = "GCAM_commodity") %>%
-      mutate(cost_PrP_ratio = Cost_75USDkg / calPrice) %>%
-      select(AgSupplySector = GCAM_commodity, cost_PrP_ratio) ->
-        L2052.AgCostRatio_USA
-
+      mutate(cost_PrP_ratio_USDA = Cost_75USDkg / calPrice) %>%
+      select(AgSupplySector = GCAM_commodity, cost_PrP_ratio_USDA) ->
+      L2052.AgCostRatio_USA
     L2052.AgCost_ag_irr_mgmt <- left_join_error_no_match(L2052.AgCost_ag_irr_mgmt, L2052.AgCostRatio_USA,
-                                     by = "AgSupplySector") %>%
+                                                         by = "AgSupplySector") %>%
       left_join_error_no_match(select(L2012.AgSupplySector, region, AgSupplySector, calPrice),
                                by = c("region", "AgSupplySector")) %>%
-      mutate(nonLandVariableCost = round(calPrice * cost_PrP_ratio, aglu.DIGITS_CALPRICE)) %>%
+      left_join_error_no_match(L2052.AgCostShare_reg_nonLand_yr %>%
+                                 select(region, AgSupplySector = GCAM_commodity, cost_PrP_ratio_GTAP = value, year),
+                               by = c("region", "AgSupplySector", "year")) %>%
+      # Note that GTAP approach/data is used. If using USDA: nonLandVariableCost = calPrice * cost_PrP_ratio_USDA
+      mutate(nonLandVariableCost = calPrice * cost_PrP_ratio_GTAP,
+             nonLandVariableCost = round(nonLandVariableCost, aglu.DIGITS_CALPRICE)) %>%
       select(LEVEL2_DATA_NAMES[["AgCost"]])
-
     # Assign nonLandVariableCost of bioenergy production, assuming the same level to all four technologies
     # Start with the yield table to determine where bioenergy crops are being read in, get both grass and tree crops
     L201.AgYield_bio_grass %>%
@@ -140,12 +166,11 @@ module_aglu_L2052.ag_prodchange_cost_irr_mgmt <- function(command, ...) {
       repeat_add_columns(tibble(year = MODEL_YEARS)) %>%
       select(names_AgCost) ->
       L2052.AgCost_bio_irr_mgmt
-
     # Assign nonLandVariableCost of forest production
     # Start with the yield table to determine where forest are being read in
     # Differentiate regional cost for forest using aglu.FOR_COST_SHARE in constants.R
     L123.For_Yield_m3m2_R_GLU %>%
-      select(GCAM_region_ID, GCAM_commodity, Land_Type,GLU) %>%
+      select(GCAM_region_ID, Land_Type, GLU) %>%
       unique() %>%
       # Copy costs to all model years
       repeat_add_columns(tibble(year = MODEL_YEARS)) %>%
@@ -157,14 +182,12 @@ module_aglu_L2052.ag_prodchange_cost_irr_mgmt <- function(command, ...) {
              AgSupplySubsector = paste(Land_Type, GLU_name, sep = aglu.CROP_GLU_DELIMITER),
              AgProductionTechnology = AgSupplySubsector) %>%
       left_join(L1321.expP_R_F_75USDm3, by = c("GCAM_region_ID", "GCAM_commodity", "region")) %>%
-                  mutate(shares= if_else(grepl("Hardwood",Land_Type),aglu.FOR_COST_SHARE_HARDWOOD,aglu.FOR_COST_SHARE_SOFTWOOD)
-                    ,nonLandVariableCost = if_else(is.na(value),
-                                                       0,
-                                                       value * shares) )%>%
+      mutate(shares= if_else(grepl("Hardwood",Land_Type),aglu.FOR_COST_SHARE_HARDWOOD,aglu.FOR_COST_SHARE_SOFTWOOD)
+             ,nonLandVariableCost = if_else(is.na(value),
+                                            0,
+                                            value * shares) )%>%
       select(names_AgCost) ->
       L2052.AgCost_For
-
-
     # Generate min profit for ag sector ----
     # This will be read in as a threshold to calculate implicit land subsidy in GCAM
     # mainly to avoid negative profits & also to handel inconsistency nonland costs calculations
@@ -173,7 +196,6 @@ module_aglu_L2052.ag_prodchange_cost_irr_mgmt <- function(command, ...) {
                                by = c("region", "AgSupplySector")) %>%
       mutate(Profit = calPrice - nonLandVariableCost) ->
       L2052.UnAdjProfits
-
     # The min profit is uniform across regions & crops (not including bio & forest)
     # Check min profit by ag sector here. This could be considered later when needed
     # L2052.UnAdjProfits %>%
@@ -184,14 +206,11 @@ module_aglu_L2052.ag_prodchange_cost_irr_mgmt <- function(command, ...) {
     #                            ., by=c("AgSupplySector")) %>%
     #   select(LEVEL2_DATA_NAMES[['AgCalMinProfitRate']]) ->
     #   L2052.AgCalMinProfitRate
-
     L2052.UnAdjProfits %>%
       select(region, AgSupplySector) %>%
       distinct() %>%
       mutate(cal.min.profit.rate = min(L2052.UnAdjProfits$Profit)) ->
       L2052.AgCalMinProfitRate
-
-
     # Future agricultural productivity changes ----
     # Specify reference scenario agricultural productivity change for crops (not incl biomass)
     L162.ag_YieldRate_R_C_Y_GLU_irr %>%
@@ -213,7 +232,6 @@ module_aglu_L2052.ag_prodchange_cost_irr_mgmt <- function(command, ...) {
                                             MGMT, sep = aglu.MGMT_DELIMITER)) %>%
       select(names_AgProdChange) ->
       L2052.AgProdChange_ag_irr_ref
-
     # Specify reference scenario agricultural productivity change for biomass
     L162.bio_YieldRate_R_Y_GLU_irr %>%
       filter(year %in% MODEL_FUTURE_YEARS) %>%
@@ -221,7 +239,6 @@ module_aglu_L2052.ag_prodchange_cost_irr_mgmt <- function(command, ...) {
       left_join_error_no_match(GCAM_region_names, by = "GCAM_region_ID") %>%
       left_join_error_no_match(basin_to_country_mapping[c("GLU_code", "GLU_name")], by = c("GLU" = "GLU_code")) ->
       L2051.AgProdChange_bio_irr_ref
-
     # Use the yield table to determine where bioenergy crops are being read in, get both grass and tree crops
     L201.AgYield_bio_grass %>%
       select(names_AgTech) %>%
@@ -237,10 +254,8 @@ module_aglu_L2052.ag_prodchange_cost_irr_mgmt <- function(command, ...) {
       left_join(L2051.AgProdChange_bio_irr_ref %>%
                   select(region, GLU_name, biomass = GCAM_subsector, IRR_RFD = Irr_Rfd, year, AgProdChange),
                 by = c("region", "biomass", "GLU_name", "year", "IRR_RFD")) %>%
-
       # left_join(L2051.AgProdChange_bio_irr_ref[c("region", "GLU_name", "Irr_Rfd", "year", "AgProdChange")],
       #           by = c("region", "GLU_name", "IRR_RFD" = "Irr_Rfd", "year")) %>%
-
       # Note: Grass crops are available in any land use regions with crop production, and tree crops are available in any region with forests.
       # Because the yield growth rates are based on crops, some places that have forests but no cropland will not have yield improvement rates.
       # These regions are assumed minor agriculturally and as such not assigned yield improvement for tree-based bioenergy crops.
@@ -252,29 +267,24 @@ module_aglu_L2052.ag_prodchange_cost_irr_mgmt <- function(command, ...) {
                                             MGMT, sep = aglu.MGMT_DELIMITER)) %>%
       select(names_AgProdChange) ->
       L2052.AgProdChange_bio_irr_ref
-
     # Specify the scenario with high agricultural productivity change (not incl biomass)
     L2052.AgProdChange_ag_irr_ref %>%
       # Use the high growth multiplier
       mutate(AgProdChange = AgProdChange * aglu.HI_PROD_GROWTH_MULT) ->
       L2052.AgProdChange_irr_high
-
     # Specify the scenario with low agricultural productivity change (not incl biomass)
     L2052.AgProdChange_ag_irr_ref %>%
       # Use the low growth multiplier
       mutate(AgProdChange = AgProdChange * aglu.LOW_PROD_GROWTH_MULT) ->
       L2052.AgProdChange_irr_low
-
     # Specify the SSP4 scenario with diverging agricultural productivity change
     # between high, median, and low income regions (not incl biomass)
-
     # Get the region list of high income countries
     get_ssp_regions(L102.pcgdp_thous90USD_Scen_R_Y, GCAM_region_names, "high") ->
       high_reg
     # Get the region list of low income countries
     get_ssp_regions(L102.pcgdp_thous90USD_Scen_R_Y, GCAM_region_names, "low") ->
       low_reg
-
     # Assign the reference agricultural productivity change to median income countries,
     # high change to high income regions, and low change to low income regions
     L2052.AgProdChange_ag_irr_ref %>%
@@ -282,7 +292,6 @@ module_aglu_L2052.ag_prodchange_cost_irr_mgmt <- function(command, ...) {
       bind_rows(filter(L2052.AgProdChange_irr_high, region %in% high_reg),
                 filter(L2052.AgProdChange_irr_low, region %in% low_reg)) ->
       L2052.AgProdChange_irr_ssp4
-
     # Produce outputs ----
     L2052.AgCost_ag_irr_mgmt %>%
       add_title("Non-land variable costs of crops prodction by region / crop / GLU / technology") %>%
@@ -297,7 +306,6 @@ module_aglu_L2052.ag_prodchange_cost_irr_mgmt <- function(command, ...) {
                      "L1321.ag_prP_R_C_75USDkg",
                      "L2012.AgSupplySector") ->
       L2052.AgCost_ag_irr_mgmt
-
     L2052.AgCalMinProfitRate %>%
       add_title("Set minimum calibration profit rate") %>%
       add_units("1975$ per kg") %>%
@@ -306,7 +314,6 @@ module_aglu_L2052.ag_prodchange_cost_irr_mgmt <- function(command, ...) {
       add_comments("calculated such as fertilizer or water costs.") %>%
       add_precursors("L2012.AgSupplySector", "L2052.AgCost_ag_irr_mgmt") ->
       L2052.AgCalMinProfitRate
-
     L2052.AgCost_bio_irr_mgmt %>%
       add_title("Non-land variable costs of biomass crops production by region / crop / GLU / technology") %>%
       add_units("1975$ per kg") %>%
@@ -315,7 +322,6 @@ module_aglu_L2052.ag_prodchange_cost_irr_mgmt <- function(command, ...) {
       add_precursors("L201.AgYield_bio_grass",
                      "L201.AgYield_bio_tree") ->
       L2052.AgCost_bio_irr_mgmt
-
     L2052.AgCost_For %>%
       add_title("Non-land variable costs of forest prodction by region / GLU") %>%
       add_units("1975$ per kg") %>%
@@ -326,7 +332,6 @@ module_aglu_L2052.ag_prodchange_cost_irr_mgmt <- function(command, ...) {
                      "L123.For_Yield_m3m2_R_GLU",
                      "L1321.expP_R_F_75USDm3") ->
       L2052.AgCost_For
-
     L2052.AgProdChange_ag_irr_ref %>%
       add_title("Reference agricultural productivity change of crops by region / crop / GLU / technology") %>%
       add_units("Unitless") %>%
@@ -335,7 +340,6 @@ module_aglu_L2052.ag_prodchange_cost_irr_mgmt <- function(command, ...) {
       add_precursors("water/basin_to_country_mapping",
                      "L162.ag_YieldRate_R_C_Y_GLU_irr") ->
       L2052.AgProdChange_ag_irr_ref
-
     L2052.AgProdChange_bio_irr_ref %>%
       add_title("Reference agricultural productivity change of biomass crops by region / crop / GLU / technology") %>%
       add_units("Unitless") %>%
@@ -345,7 +349,6 @@ module_aglu_L2052.ag_prodchange_cost_irr_mgmt <- function(command, ...) {
                      "L201.AgYield_bio_grass",
                      "L201.AgYield_bio_tree") ->
       L2052.AgProdChange_bio_irr_ref
-
     L2052.AgProdChange_irr_high %>%
       add_title("High agricultural productivity change of crops by region / crop / GLU / technology") %>%
       add_units("Unitless") %>%
@@ -355,7 +358,6 @@ module_aglu_L2052.ag_prodchange_cost_irr_mgmt <- function(command, ...) {
       same_precursors_as("L2052.AgProdChange_ag_irr_ref") %>%
       add_precursors("L102.pcgdp_thous90USD_Scen_R_Y") ->
       L2052.AgProdChange_irr_high
-
     L2052.AgProdChange_irr_low %>%
       add_title("Low agricultural productivity change of crops by region / crop / GLU / technology") %>%
       add_units("Unitless") %>%
@@ -365,7 +367,6 @@ module_aglu_L2052.ag_prodchange_cost_irr_mgmt <- function(command, ...) {
       same_precursors_as("L2052.AgProdChange_ag_irr_ref") %>%
       add_precursors("L102.pcgdp_thous90USD_Scen_R_Y") ->
       L2052.AgProdChange_irr_low
-
     L2052.AgProdChange_irr_ssp4 %>%
       add_title("SSP4 agricultural productivity change of crops by region / crop / GLU / technology") %>%
       add_units("Unitless") %>%
@@ -377,9 +378,7 @@ module_aglu_L2052.ag_prodchange_cost_irr_mgmt <- function(command, ...) {
       same_precursors_as("L2052.AgProdChange_ag_irr_ref") %>%
       add_precursors("L102.pcgdp_thous90USD_Scen_R_Y") ->
       L2052.AgProdChange_irr_ssp4
-
     return_data(MODULE_OUTPUTS)
-
   } else {
     stop("Unknown command")
   }

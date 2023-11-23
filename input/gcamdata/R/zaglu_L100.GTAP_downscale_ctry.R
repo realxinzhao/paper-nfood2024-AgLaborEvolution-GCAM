@@ -23,18 +23,21 @@ module_aglu_L100.GTAP_downscale_ctry <- function(command, ...) {
   MODULE_INPUTS <-
     c(FILE = "aglu/AGLU_ctry",
       FILE = "aglu/FAO/FAO_ag_items_PRODSTAT",
+      FILE = "common/GCAM_region_names",
       "L100.LDS_value_milUSD",
       "L100.LDS_ag_prod_t",
       FILE = "socioeconomics/GTAP/GCAM_GTAP_region_mapping",
       FILE = "socioeconomics/GTAP/GTAP_sector_aggregation_mapping",
+      FILE = "socioeconomics/GTAP/GCAM_GTAP_Agsector_mapping",
       OPTIONAL_FILE = "socioeconomics/GTAP/GTAPv10_basedata_VKB_SAVE_VDEP",
       OPTIONAL_FILE = "socioeconomics/GTAP/GTAPv10_baseview_SF01_VFA")
 
   MODULE_OUTPUTS <-
     c("L100.GTAP_LV_milUSD",
-      "L100.GTAP_capital_stock")
+      "L100.GTAP_capital_stock",
+      "L100.GTAPCostShare_AgLU_reg_comm")
 
-    if(command == driver.DECLARE_INPUTS) {
+  if(command == driver.DECLARE_INPUTS) {
     return(MODULE_INPUTS)
   } else if(command == driver.DECLARE_OUTPUTS) {
     return(MODULE_OUTPUTS)
@@ -42,7 +45,7 @@ module_aglu_L100.GTAP_downscale_ctry <- function(command, ...) {
 
 
     iso <- GTAP_region <- GTAP_use <- GLU <- value <- prod_ctry <- prod_rgn <-
-        share <- NULL                   # silence package check.
+      share <- NULL                   # silence package check.
 
     all_data <- list(...)[[1]]
 
@@ -118,11 +121,65 @@ module_aglu_L100.GTAP_downscale_ctry <- function(command, ...) {
 
     } else {
 
-        # If missing source GTAP data, prebuilt data is read here
-        L100.GTAP_capital_stock <- extract_prebuilt_data("L100.GTAP_capital_stock")
+      # If missing source GTAP data, prebuilt data is read here
+      L100.GTAP_capital_stock <- extract_prebuilt_data("L100.GTAP_capital_stock")
     }
 
+    if(!is.null(GTAPv10_baseview_SF01_VFA)) {
 
+      assert_that(
+        GCAM_GTAP_Agsector_mapping %>% distinct(GTAP_sectors) %>% pull %>%
+          setdiff(GTAPv10_baseview_SF01_VFA %>% distinct(output) %>% pull) %>%
+          length() == 0, msg = "Mapping inconsistency"
+      )
+
+      GTAP_AgLU_sector <- GCAM_GTAP_Agsector_mapping %>%
+        distinct(output = GTAP_sectors)
+
+      GTAPv10_baseview_SF01_VFA %>%
+        # Keep relevant AgLU sectors only
+        right_join(GTAP_AgLU_sector,  by = "output") %>%
+        # aggregate input sectors for simplicity
+        left_join_error_no_match(GTAP_sector_aggregation_mapping %>% select(input = GTAPv10, input1 = GCAM_sector), by = "input") %>%
+        group_by(region, year, sector = output, input = input1) %>%
+        summarize(value = sum(value), .groups = "drop") ->
+        L100.GTAPCostShare_AgLU_MilUSD
+
+      # Aggregate to GCAM regions
+
+      L100.GTAPCostShare_AgLU_MilUSD %>%
+        rename(region_GTAP = region) %>%
+        left_join_error_no_match(
+          GCAM_GTAP_region_mapping %>% select(region_GTAP = GTAPv10_region, region_GCAM = GCAM_region),
+          by = "region_GTAP") %>%
+        left_join_error_no_match(
+          GCAM_region_names %>% select(region_GCAM = region, GCAM_region_ID),
+          by = "region_GCAM") %>%
+        group_by(GCAM_region_ID, year, sector, input) %>%
+        summarize(value = sum(value), .groups = "drop") ->
+        L100.GTAPCostShare_AgLU_reg
+
+      # Map to GCAM sectors and Calculate shares
+      GCAM_GTAP_Agsector_mapping %>%
+        select(GCAM_commodity, sector = GTAP_sectors, Primary) %>%
+        # the mapping is two-way; only cost shares are useful!
+        full_join(
+          L100.GTAPCostShare_AgLU_reg, by = "sector") %>%
+        mutate(input = if_else(Primary == F & input %in% c("Labor", "Capital"),
+                               paste0(input, "_Proc"), input) ) %>%
+        group_by(GCAM_region_ID, GCAM_commodity, input, year) %>%
+        summarize(value = sum(value), .groups = "drop") %>%
+        group_by(GCAM_region_ID, year, GCAM_commodity) %>%
+        mutate(value = value / sum(value) * 100) %>% ungroup() ->
+        L100.GTAPCostShare_AgLU_reg_comm
+
+
+    } else {
+
+      # If missing source GTAP data, prebuilt data is read here
+      L100.GTAPCostShare_AgLU_reg_comm <- extract_prebuilt_data("L100.GTAPCostShare_AgLU_reg_comm")
+
+    }
 
 
     # Create the iso - GTAP_region mapping file ----
@@ -175,8 +232,8 @@ module_aglu_L100.GTAP_downscale_ctry <- function(command, ...) {
       replace_na(list(value = 0)) %>%
       select(-prod_ctry, -prod_rgn, -share) %>%
 
-      # Produce outputs
-      add_title("Land value by country / GLU / GTAP commodity class") %>%
+      # Produce outputs ----
+    add_title("Land value by country / GLU / GTAP commodity class") %>%
       add_units("Million US Dollars") %>%
       add_comments("Compute the country-within-GTAP region's production share for each of the commodity classes") %>%
       add_comments("Downscale the GTAP region-level land value to countries by production shares") %>%
@@ -186,6 +243,18 @@ module_aglu_L100.GTAP_downscale_ctry <- function(command, ...) {
                      "L100.LDS_value_milUSD",
                      "L100.LDS_ag_prod_t") ->
       L100.GTAP_LV_milUSD
+
+    L100.GTAPCostShare_AgLU_reg_comm %>%
+      add_title("GCAM AgLU sector cost share", overwrite = TRUE) %>%
+      add_units("share") %>%
+      add_legacy_name("L100.GTAPCostShare_AgLU_reg_comm") %>%
+      add_comments("Note that for livestock sectors, primary and secondary are aggregated while labor and capital are distinguished") %>%
+      add_precursors("common/GCAM_region_names",
+                     "socioeconomics/GTAP/GCAM_GTAP_region_mapping",
+                     "socioeconomics/GTAP/GTAP_sector_aggregation_mapping",
+                     "socioeconomics/GTAP/GCAM_GTAP_Agsector_mapping",
+                     "socioeconomics/GTAP/GTAPv10_baseview_SF01_VFA") ->
+      L100.GTAPCostShare_AgLU_reg_comm
 
     return_data(MODULE_OUTPUTS)
   } else {
