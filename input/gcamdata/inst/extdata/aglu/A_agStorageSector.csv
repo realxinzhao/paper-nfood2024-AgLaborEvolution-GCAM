@@ -7,21 +7,21 @@
 # Column types: clcccn
 # ----------
 GCAM_commodity,storage_model,supplysector,minicam_energy_input,technology,logit.exponent
-Corn,T,regional corn,total corn,ag-storage,1
-FiberCrop,T,regional fibercrop,total fibercrop,ag-storage,1
+Corn,F,regional corn,total corn,ag-storage,1
+FiberCrop,F,regional fibercrop,total fibercrop,ag-storage,1
 Fruits,F,regional fruits,total fruits,ag-storage,1
-Legumes,T,regional legumes,total legumes,ag-storage,1
-MiscCrop,T,regional misccrop,total misccrop,ag-storage,1
-NutsSeeds,T,regional nuts_seeds,total nuts_seeds,ag-storage,1
-OilCrop,T,regional oilcrop,total oilcrop,ag-storage,1
-OtherGrain,T,regional othergrain,total othergrain,ag-storage,1
-OilPalm,T,regional oilpalm,total oilpalm,ag-storage,1
-Rice,T,regional rice,total rice,ag-storage,1
-RootTuber,T,regional root_tuber,total root_tuber,ag-storage,1
-Soybean,T,regional soybean,total soybean,ag-storage,1
-SugarCrop,T,regional sugarcrop,total sugarcrop,ag-storage,1
+Legumes,F,regional legumes,total legumes,ag-storage,1
+MiscCrop,F,regional misccrop,total misccrop,ag-storage,1
+NutsSeeds,F,regional nuts_seeds,total nuts_seeds,ag-storage,1
+OilCrop,F,regional oilcrop,total oilcrop,ag-storage,1
+OtherGrain,F,regional othergrain,total othergrain,ag-storage,1
+OilPalm,F,regional oilpalm,total oilpalm,ag-storage,1
+Rice,F,regional rice,total rice,ag-storage,1
+RootTuber,F,regional root_tuber,total root_tuber,ag-storage,1
+Soybean,F,regional soybean,total soybean,ag-storage,1
+SugarCrop,F,regional sugarcrop,total sugarcrop,ag-storage,1
 Vegetables,F,regional vegetables,total vegetables,ag-storage,1
-Wheat,T,regional wheat,total wheat,ag-storage,1
+Wheat,F,regional wheat,total wheat,ag-storage,1
 Beef,F,regional beef,total beef,ag-storage,1
 Dairy,F,regional dairy,total dairy,ag-storage,1
 Pork,F,regional pork,total pork,ag-storage,1
