@@ -35,8 +35,9 @@ module_aglu_an_input_xml <- function(command, ...) {
       "L202.StubTechProd_an",
       "L202.StubTechCoef_an",
       "L202.StubTechCost_an",
-       "L202.StubTechCost_For_proc",
-      "L202.StubTechProd_in_Forest")
+      "L202.StubTechCost_For_proc",
+      "L202.StubTechProd_in_Forest",
+      "L2082.StubTechCost_an_adj")
 
   MODULE_OUTPUTS <-
     c(XML = "an_input.xml")
@@ -71,9 +72,10 @@ module_aglu_an_input_xml <- function(command, ...) {
     L202.StubTechInterp_an <- get_data(all_data, "L202.StubTechInterp_an")
     L202.StubTechProd_an <- get_data(all_data, "L202.StubTechProd_an")
     L202.StubTechCoef_an <- get_data(all_data, "L202.StubTechCoef_an")
-    L202.StubTechCost_an <- get_data(all_data, "L202.StubTechCost_an")
+    L2082.StubTechCost_an_adj <- get_data(all_data, "L202.StubTechCost_an")
     L202.StubTechCost_For_proc <- get_data(all_data,"L202.StubTechCost_For_proc")
     L202.StubTechProd_in_Forest <- get_data(all_data,"L202.StubTechProd_in_Forest")
+    L2082.StubTechCost_an_adj <- get_data(all_data, "L2082.StubTechCost_an_adj")
 
 
     # ===================================================
@@ -104,7 +106,7 @@ module_aglu_an_input_xml <- function(command, ...) {
       add_xml_data(L202.StubTechInterp_an, "StubTechInterp") %>%
       add_xml_data(L202.StubTechProd_an, "StubTechProd") %>%
       add_xml_data(L202.StubTechCoef_an, "StubTechCoef") %>%
-      add_xml_data(L202.StubTechCost_an, "StubTechCost") %>%
+      add_xml_data(L2082.StubTechCost_an_adj, "StubTechCost") %>%
       add_xml_data(L202.StubTechCost_For_proc, "StubTechCost") %>%
       add_precursors("L202.RenewRsrc",
                      "L202.RenewRsrcPrice",
@@ -128,8 +130,9 @@ module_aglu_an_input_xml <- function(command, ...) {
                      "L202.StubTechProd_an",
                      "L202.StubTechCoef_an",
                      "L202.StubTechCost_an",
+                     "L2082.StubTechCost_an_adj",
                      "L202.StubTechCost_For_proc",
-                  "L202.StubTechProd_in_Forest"
+                     "L202.StubTechProd_in_Forest"
                      ) ->
       an_input.xml
 

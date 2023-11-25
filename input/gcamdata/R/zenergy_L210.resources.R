@@ -22,8 +22,8 @@
 #' @importFrom dplyr bind_rows distinct filter if_else mutate select semi_join
 #' @author RLH November 2017
 module_energy_L210.resources <- function(command, ...) {
-  if(command == driver.DECLARE_INPUTS) {
-    return(c(FILE = "common/GCAM_region_names",
+MODULE_INPUTS <-
+  c(FILE = "common/GCAM_region_names",
              FILE = "energy/A_regions",
              FILE = "energy/A10.rsrc_info",
              FILE = "energy/A10.subrsrc_info",
@@ -49,9 +49,11 @@ module_energy_L210.resources <- function(command, ...) {
              "L117.RsrcCurves_EJ_R_tradbio",
              "L120.RsrcCurves_EJ_R_offshore_wind",
              "L120.TechChange_offshore_wind",
-             "L102.pcgdp_thous90USD_Scen_R_Y"))
-  } else if(command == driver.DECLARE_OUTPUTS) {
-    return(c("L210.Rsrc",
+             "L102.pcgdp_thous90USD_Scen_R_Y",
+             "L2082.region_capitalprice",
+             "L2082.region_laborprice")
+
+MODULE_OUTPUTS <- c("L210.Rsrc",
              "L210.RenewRsrc",
              "L210.UnlimitRsrc",
              "L210.RsrcPrice",
@@ -93,7 +95,12 @@ module_energy_L210.resources <- function(command, ...) {
              "L210.ResTechShrwt",
              "L210.ResTechShrwt_EGS",
              "L210.ResTechCoef",
-             "L210.ResTechCost"))
+             "L210.ResTechCost")
+    if(command == driver.DECLARE_INPUTS) {
+      return(MODULE_INPUTS)
+    } else if(command == driver.DECLARE_OUTPUTS) {
+      return(MODULE_OUTPUTS)
+
   } else if(command == driver.MAKE) {
 
     # Silence package checks
@@ -110,7 +117,7 @@ module_energy_L210.resources <- function(command, ...) {
 
     all_data <- list(...)[[1]]
 
-    # Load required inputs
+    # Load required inputs ----
     GCAM_region_names <- get_data(all_data, "common/GCAM_region_names")
     A_regions <- get_data(all_data, "energy/A_regions")
     A10.rsrc_info <- get_data(all_data, "energy/A10.rsrc_info", strip_attributes = TRUE) %>%
@@ -300,7 +307,12 @@ module_energy_L210.resources <- function(command, ...) {
     L210.UnlimitRsrcPrice <- L210.rsrc_info %>%
       filter(resource_type == "unlimited-resource",
              year %in% MODEL_BASE_YEARS) %>%
-      select(region, unlimited.resource = resource, year, price = value)
+      select(region, unlimited.resource = resource, year, price = value) %>%
+      left_join_error_no_match(L2082.region_capitalprice, by = c("region", "year")) %>%
+      left_join_error_no_match(L2082.region_laborprice, by = c("region", "year")) %>%
+      mutate(price = ifelse(unlimited.resource == "Labor_Ag", price.L, price),
+             price = ifelse(unlimited.resource == "Capital_Ag", price.K, price)) %>%
+      select(region, unlimited.resource, year, price)
 
     # B. Tech change
     # Repeat and add region to assumed techchange tables
@@ -892,14 +904,7 @@ module_energy_L210.resources <- function(command, ...) {
       same_precursors_as(L210.GrdRenewRsrcMax_EGS) ->
       L210.ResTechShrwt_EGS
 
-    return_data(L210.Rsrc, L210.RenewRsrc, L210.UnlimitRsrc, L210.RsrcPrice, L210.RenewRsrcPrice, L210.UnlimitRsrcPrice, L210.RsrcTechChange,
-                L210.SmthRenewRsrcTechChange, L210.SmthRenewRsrcTechChange_offshore_wind, L210.RsrcCalProd, L210.ReserveCalReserve, L210.RsrcCurves_fos, L210.RsrcCurves_U, L210.SmthRenewRsrcCurves_MSW,
-                L210.SmthRenewRsrcCurves_wind, L210.SmthRenewRsrcCurves_offshore_wind, L210.SmthRenewRsrcCurvesGdpElast_roofPV, L210.GrdRenewRsrcCurves_geo, L210.GrdRenewRsrcMax_geo,
-                L210.GrdRenewRsrcCurves_EGS, L210.GrdRenewRsrcMax_EGS, L210.GrdRenewRsrcCurves_tradbio, L210.GrdRenewRsrcMax_tradbio, L210.RsrcTechChange_SSP1,
-                L210.RsrcEnvironCost_SSP1, L210.RsrcTechChange_SSP2, L210.RsrcEnvironCost_SSP2, L210.RsrcTechChange_SSP3, L210.RsrcEnvironCost_SSP3,
-                L210.RsrcTechChange_SSP4, L210.RsrcEnvironCost_SSP4, L210.RsrcTechChange_SSP5, L210.RsrcEnvironCost_SSP5,
-                L210.ResSubresourceProdLifetime, L210.SubresourcePriceAdder, L210.ResReserveTechLifetime, L210.ResReserveTechDeclinePhase, L210.ResReserveTechProfitShutdown, L210.ResReserveTechInvestmentInput,
-                L210.ResTechShrwt, L210.ResTechShrwt_EGS, L210.ResTechCoef, L210.ResTechCost)
+    return_data(MODULE_OUTPUTS)
   } else {
     stop("Unknown command")
   }

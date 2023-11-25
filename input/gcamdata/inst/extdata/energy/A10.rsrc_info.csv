@@ -19,3 +19,5 @@ limestone,unlimited-resource,global,Mt,1975$/kg,0.001,0.001,0.001,0.001,0.001,0.
 offshore wind resource,renewresource,regional,EJ,1975$/GJ,0.05,0.05,0.05,0.05,0.05,0.05
 scrap,unlimited-resource,global,Mt,1975$/kg,0.001,0.001,0.001,0.001,0.001,0.001
 unconventional oil upscaling,unlimited-resource,global,EJ,1975$/GJ,0.001,0.001,0.001,0.001,0.001,0.001
+Labor_Ag,unlimited-resource,regional,mpl,1975K$/ppl,1,1,1,1,1,1
+Capital_Ag,unlimited-resource,regional,billion$,1975$/$,1,1,1,1,1,1
