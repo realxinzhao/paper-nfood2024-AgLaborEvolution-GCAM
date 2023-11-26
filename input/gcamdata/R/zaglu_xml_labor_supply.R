@@ -267,6 +267,7 @@ module_aglu_labor_supply_xml <- function(command, ...) {
       labor_supply_fn
 
     L2082.region_laborprice %>%
+      filter(year %in% MODEL_BASE_YEARS) %>%
       mutate(price = price.L,
              resource = 'Labor_Ag') %>%
       select(LEVEL2_DATA_NAMES$RsrcPrice) ->
