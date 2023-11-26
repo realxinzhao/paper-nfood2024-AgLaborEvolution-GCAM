@@ -154,7 +154,7 @@ module_aglu_L2082.ag_laborcapital_irr_mgmt <- function(command, ...) {
              country = gsub("Türkiye", "Turkey", country),
              country = gsub("Wallis and Futuna Islands", "Wallis and Futuna", country)) %>%
       left_join(iso_GCAM_regID %>% rename(country = country_name), by = "country") %>%
-      left_join_error_no_match(GCAM_region_names, by = "GCAM_region_ID") -> check
+      left_join_error_no_match(GCAM_region_names, by = "GCAM_region_ID") %>%
       group_by(region, year) %>%
       summarise(AG = sum(AG),
                 FISH = sum(FISH),
@@ -173,7 +173,7 @@ module_aglu_L2082.ag_laborcapital_irr_mgmt <- function(command, ...) {
       select(region, FISH, FOR) ->
       ILO_labor_share
 
-    # missing data for
+    # ILO missing data for
     # "Australia_NZ" "Canada"       "China"        "Russia"       "South Africa" "Taiwan"       "Argentina"
 
     GTAP_AgLU_sector <- GCAM_GTAP_Agsector_mapping %>%
@@ -226,15 +226,27 @@ module_aglu_L2082.ag_laborcapital_irr_mgmt <- function(command, ...) {
       ungroup() ->
       GTAP_labor_share
 
-    # use the lower one from GTAP and ILO for FOR and FISH across all GCAM regions
+    # For forestry (FOR), use ILO when available, otherwise, use GTAP.
+    # Top 5 countries with forest resource --
+    # the Russian Federation (20.1%), Brazil (12.2%), Canada (8.6%), USA (7.6%) and China (5.4%)
+    # https://www.globalforestwatch.org/dashboards/global/
+    # Eastern Europe (Ukraine) loss 11% of 2000 by 2022
+    # Canada loss 12% of 2000 by 2022
+    # USA loss 17% of 2000 by 2022
+
+    # For fishery, USA's estimates is too big, use GTAP, otherwise use ILO when available.
+    # SAN is high due to Guyana: https://www.gyeiti.org/fisheries#anchor
+    # In 2017 the fisheries industry contributed 1.84% to the GDP (GYEITI Report)
+    # The fishing industry employed some 15,000 people 2014. It is estimated that 4,000 to 5,000 people were directly employed in the sector and many more indirectly.
+    # The ILO fishing employment in Guyana fall in Guyana's government website information.
 
     ILO_labor_share %>% rename(FISH_ILO = FISH, FOR_ILO = FOR) %>%
       full_join(GTAP_labor_share %>% rename(FISH_GTAP = FISH, FOR_GTAP = FOR),
                 by = "region") %>%
-      mutate(FISH_ILO = ifelse(is.na(FISH_ILO), FISH_GTAP, FISH_ILO),
-             FOR_ILO = ifelse(is.na(FOR_ILO), FOR_GTAP, FOR_ILO),
-             FISH = pmin(FISH_ILO, FISH_GTAP),
-             FOR = pmin(FOR_ILO, FOR_GTAP)) %>%
+      mutate(FISH_ILO = ifelse(is.na(FISH_ILO), FISH_GTAP, FISH_ILO), # use GTAP to fill missing ILO
+             FOR_ILO = ifelse(is.na(FOR_ILO), FOR_GTAP, FOR_ILO), # use GTAP to fill missing ILO
+             FISH = ifelse(region == "USA", FISH_GTAP, FISH_ILO), # use GTAP for USA FISH
+             FOR = FOR_ILO) %>% # use ILO whenever available for forestry (FOR)
       mutate(AG = 1 - FISH - FOR) %>%
       select(region, FISH, FOR, AG) %>%
       left_join_error_no_match(GCAM_region_names, by = "region") ->
@@ -591,13 +603,14 @@ module_aglu_L2082.ag_laborcapital_irr_mgmt <- function(command, ...) {
 
     # Step 4.4.1 Do the NLC adjustments for Forest  ----
 
-
     L2082.AgCoef_laborcapital_for_hist %>%
       spread(minicam.energy.input, coefficient) %>%
       left_join_error_no_match(L2082.region_laborprice, by = c("region", "year")) %>%
       left_join_error_no_match(L2082.region_capitalprice, by = c("region", "year")) %>%
       mutate(Labor_UC = price.L * Labor_Ag,
-             Capital_UC = price.K * Capital_Ag) ->
+             Capital_UC = price.K * Capital_Ag,
+             Labor_UC = pmax(2, Labor_UC), # Adding a min value of 2
+             Capital_UC = pmax(2, Capital_UC)) -> # Adding a min value of 2)
       L2082.laborcapital_for_hist
 
     L2082.laborcapital_for_hist %>%
@@ -833,6 +846,20 @@ module_aglu_L2082.ag_laborcapital_irr_mgmt <- function(command, ...) {
       add_legacy_name("L2082.StubTechCoef_laborcapital_tfp_MA") %>%
       add_precursors("L202.StubTechCost_an") ->
       L2082.StubTechCoef_laborcapital_an_tfp_MA
+
+    L2082.region_laborprice %>%
+      add_title("Regional agricultural labor market price") %>%
+      add_units("1975K$/ppl") %>%
+      add_legacy_name("L2082.region_laborprice") %>%
+      add_precursors("L100.GTAP_AgLaborCapitalCostShare") ->
+      L2082.region_laborprice
+
+    L2082.region_capitalprice %>%
+      add_title("Regional agricultural capital market price") %>%
+      add_units("1975 $/$") %>%
+      add_legacy_name("L2082.region_capitalprice") %>%
+      add_precursors("L100.GTAP_AgLaborCapitalCostShare") ->
+      L2082.region_capitalprice
 
     return_data(MODULE_OUTPUTS)
   } else {
