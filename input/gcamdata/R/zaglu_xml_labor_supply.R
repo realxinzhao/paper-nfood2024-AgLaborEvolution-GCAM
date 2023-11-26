@@ -17,6 +17,8 @@ module_aglu_labor_supply_xml <- function(command, ...) {
       FILE = "aglu/AGLU_ctry",
       FILE = "common/GCAM_region_names",
       FILE = "water/basin_to_country_mapping",
+      FILE = "aglu/RuralPop_WB",
+      FILE = "aglu/UrbanShare_SSP",
       "L2082.laborcapital_ag_irr_mgmt_expenditure",
       "L2082.laborcapital_an_expenditure",
       "L2082.laborcapital_for_expenditure",
@@ -85,22 +87,24 @@ module_aglu_labor_supply_xml <- function(command, ...) {
     # obtain rural population ----
 
     # read in historical rural population from WorldBank: https://data.worldbank.org/indicator/SP.RUR.TOTL?locations=CN
-    WB_rural <- read.csv("C:/Model/heatstress/API_SP.RUR.TOTL_DS2_en_csv_v2_5455093.csv", fileEncoding = 'UTF-8-BOM', skip = 4, header = T) %>%
-      gather_time() %>%
-      mutate(iso = tolower(Country.Code)) %>%
+    RuralPop_WB %>%
+      gather_years() %>%
+      mutate(iso = tolower(`Country Code`)) %>%
       left_join(iso_GCAM_regID, by = "iso") %>%
       left_join(GCAM_region_names, by = "GCAM_region_ID") %>%
       select(year, region, GCAM_region_ID, value) %>%
       na.omit() %>%
       filter(year %in% MODEL_YEARS) %>%
       group_by(region, year) %>%
-      summarize(rural = sum(value)) # ppl
+      summarize(rural = sum(value)) -> # ppl
+      WB_rural
 
     # extract urban population share across all SSP
-    UrbanShare <- read.csv("C:/Model/heatstress/SspDb_country_data_2013-06-12.csv", fileEncoding = 'UTF-8-BOM', header = T) %>%
+    UrbanShare_SSP %>%
       filter(VARIABLE == "Population|Urban|Share") %>%
-      gather_time() %>%
-      filter(year %in% MODEL_FUTURE_YEARS)
+      gather_years() %>%
+      filter(year %in% MODEL_FUTURE_YEARS) ->
+      UrbanShare
 
     # No data in Taiwan, use Korea's urban share
     UrbanShare_all <- UrbanShare %>%
