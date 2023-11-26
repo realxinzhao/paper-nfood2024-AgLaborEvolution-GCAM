@@ -470,8 +470,8 @@ module_aglu_L2082.ag_laborcapital_irr_mgmt <- function(command, ...) {
     # Labor unit in cost in hi-tech  = Labor unit cost in hi-tech - delta ; lower labor IO
     # updated hi-tech: higher capital IO and lower labor IO compared to previous hi-tech factor IOs
 
-    theta_IRR = 0
-    theta_RFD = 0
+    theta_IRR = 0.2
+    theta_RFD = 0.1
 
     L2082.laborcapital_ag_irr_mgmt_expenditure %>%
       select(-nonLandVariableCost, -Exp_Capital_Bil1975USD, -Exp_Labor_Bil1975USD) %>%
