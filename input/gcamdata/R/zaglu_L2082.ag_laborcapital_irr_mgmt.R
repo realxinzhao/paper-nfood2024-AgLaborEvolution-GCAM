@@ -440,11 +440,25 @@ module_aglu_L2082.ag_laborcapital_irr_mgmt <- function(command, ...) {
 
     L2082.laborcapital_price %>%
       select(region, year, price.L = PriceLabor_K1975USDPerppl) ->
-      L2082.region_laborprice #  unit: 1975 K$/ppl
+      L2082.region_laborprice_hist #  unit: 1975 K$/ppl
+
+    L2082.region_laborprice_hist %>%
+      filter(year == 2015) %>%
+      select(-year) %>%
+      repeat_add_columns(tibble(year = MODEL_FUTURE_YEARS)) %>%
+      bind_rows(L2082.region_laborprice_hist) ->
+      L2082.region_laborprice
 
     L2082.laborcapital_price %>%
       select(region, year, price.K = PriceCapital_USDPerUSD) ->
-      L2082.region_capitalprice # unit: 1975$/1975$
+      L2082.region_capitalprice_hist # unit: 1975$/1975$
+
+    L2082.region_capitalprice_hist %>%
+      filter(year == 2015) %>%
+      select(-year) %>%
+      repeat_add_columns(tibble(year = MODEL_FUTURE_YEARS)) %>%
+      bind_rows(L2082.region_capitalprice_hist) ->
+      L2082.region_capitalprice
 
     # Step 4. Process IO coefficients (unit cost / input prices) ----
 
@@ -608,9 +622,7 @@ module_aglu_L2082.ag_laborcapital_irr_mgmt <- function(command, ...) {
       left_join_error_no_match(L2082.region_laborprice, by = c("region", "year")) %>%
       left_join_error_no_match(L2082.region_capitalprice, by = c("region", "year")) %>%
       mutate(Labor_UC = price.L * Labor_Ag,
-             Capital_UC = price.K * Capital_Ag,
-             Labor_UC = pmax(2, Labor_UC), # Adding a min value of 2
-             Capital_UC = pmax(2, Capital_UC)) -> # Adding a min value of 2)
+             Capital_UC = price.K * Capital_Ag) -> # Adding a min value of 2)
       L2082.laborcapital_for_hist
 
     L2082.laborcapital_for_hist %>%

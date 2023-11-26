@@ -37,6 +37,7 @@ module_aglu_an_input_xml <- function(command, ...) {
       "L202.StubTechCost_an",
       "L202.StubTechCost_For_proc",
       "L202.StubTechProd_in_Forest",
+      "L2082.StubTechCoef_laborcapital_an",
       "L2082.StubTechCost_an_adj")
 
   MODULE_OUTPUTS <-
@@ -76,6 +77,7 @@ module_aglu_an_input_xml <- function(command, ...) {
     L202.StubTechCost_For_proc <- get_data(all_data,"L202.StubTechCost_For_proc")
     L202.StubTechProd_in_Forest <- get_data(all_data,"L202.StubTechProd_in_Forest")
     L2082.StubTechCost_an_adj <- get_data(all_data, "L2082.StubTechCost_an_adj")
+    L2082.StubTechCoef_laborcapital_an <- get_data(all_data, "L2082.StubTechCoef_laborcapital_an")
 
 
     # ===================================================
@@ -106,6 +108,7 @@ module_aglu_an_input_xml <- function(command, ...) {
       add_xml_data(L202.StubTechInterp_an, "StubTechInterp") %>%
       add_xml_data(L202.StubTechProd_an, "StubTechProd") %>%
       add_xml_data(L202.StubTechCoef_an, "StubTechCoef") %>%
+      add_xml_data(L2082.StubTechCoef_laborcapital_an, "StubTechCoef") %>%
       add_xml_data(L2082.StubTechCost_an_adj, "StubTechCost") %>%
       add_xml_data(L202.StubTechCost_For_proc, "StubTechCost") %>%
       add_precursors("L202.RenewRsrc",
