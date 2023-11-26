@@ -38,10 +38,12 @@ module_aglu_an_input_xml <- function(command, ...) {
       "L202.StubTechCost_For_proc",
       "L202.StubTechProd_in_Forest",
       "L2082.StubTechCoef_laborcapital_an",
+      "L2082.StubTechCoef_laborcapital_an_tfp_MA",
       "L2082.StubTechCost_an_adj")
 
   MODULE_OUTPUTS <-
-    c(XML = "an_input.xml")
+    c(XML = "an_input.xml",
+      XML = "an_input_tfp_MA.xml")
 
   if(command == driver.DECLARE_INPUTS) {
     return(MODULE_INPUTS)
@@ -78,6 +80,7 @@ module_aglu_an_input_xml <- function(command, ...) {
     L202.StubTechProd_in_Forest <- get_data(all_data,"L202.StubTechProd_in_Forest")
     L2082.StubTechCost_an_adj <- get_data(all_data, "L2082.StubTechCost_an_adj")
     L2082.StubTechCoef_laborcapital_an <- get_data(all_data, "L2082.StubTechCoef_laborcapital_an")
+    L2082.StubTechCoef_laborcapital_an_tfp_MA <- get_data(all_data, "L2082.StubTechCoef_laborcapital_an_tfp_MA")
 
 
     # ===================================================
@@ -138,6 +141,62 @@ module_aglu_an_input_xml <- function(command, ...) {
                      "L202.StubTechProd_in_Forest"
                      ) ->
       an_input.xml
+
+    create_xml("an_input_tfp_MA.xml") %>%
+      add_xml_data(L202.RenewRsrc, "RenewRsrc") %>%
+      add_xml_data(L202.RenewRsrcPrice, "RenewRsrcPrice") %>%
+      add_xml_data(L202.maxSubResource, "maxSubResource") %>%
+      add_xml_data(L202.RenewRsrcCurves, "RenewRsrcCurves") %>%
+      add_node_equiv_xml("resource") %>%
+      add_node_equiv_xml("subresource") %>%
+      add_xml_data(L202.ResTechShrwt, "ResTechShrwt") %>%
+      add_xml_data(L202.UnlimitedRenewRsrcCurves, "UnlimitRsrc") %>%
+      add_xml_data(L202.UnlimitedRenewRsrcPrice, "UnlimitRsrcPrice") %>%
+      add_logit_tables_xml(L202.Supplysector_in, "Supplysector") %>%
+      add_logit_tables_xml(L202.SubsectorAll_in, "SubsectorAll", "SubsectorLogit") %>%
+      add_xml_data(L202.SubsectorInterpTo_in, "SubsectorInterpTo") %>%
+      add_xml_data(L202.StubTech_in, "StubTech") %>%
+      add_xml_data(L202.StubTechInterp_in, "StubTechInterp") %>%
+      add_xml_data(L202.GlobalTechCoef_in, "GlobalTechCoef") %>%
+      add_xml_data(L202.GlobalTechShrwt_in, "GlobalTechShrwt") %>%
+      add_xml_data(L202.StubTechProd_in, "StubTechProd") %>%
+      add_xml_data(L202.StubTechProd_in_Forest, "StubTechProd") %>%
+      add_logit_tables_xml(L202.Supplysector_an, "Supplysector") %>%
+      add_logit_tables_xml(L202.SubsectorAll_an, "SubsectorAll", "SubsectorLogit") %>%
+      add_xml_data(L202.GlobalTechShrwt_an, "GlobalTechShrwt") %>%
+      add_xml_data(L202.StubTechInterp_an, "StubTechInterp") %>%
+      add_xml_data(L202.StubTechProd_an, "StubTechProd") %>%
+      add_xml_data(L202.StubTechCoef_an, "StubTechCoef") %>%
+      add_xml_data(L2082.StubTechCoef_laborcapital_an_tfp_MA, "StubTechCoef") %>%
+      add_xml_data(L2082.StubTechCost_an_adj, "StubTechCost") %>%
+      add_xml_data(L202.StubTechCost_For_proc, "StubTechCost") %>%
+      add_precursors("L202.RenewRsrc",
+                     "L202.RenewRsrcPrice",
+                     "L202.maxSubResource",
+                     "L202.RenewRsrcCurves",
+                     "L202.ResTechShrwt",
+                     "L202.UnlimitedRenewRsrcCurves",
+                     "L202.UnlimitedRenewRsrcPrice",
+                     "L202.Supplysector_in",
+                     "L202.SubsectorAll_in",
+                     "L202.SubsectorInterpTo_in",
+                     "L202.StubTech_in",
+                     "L202.StubTechInterp_in",
+                     "L202.GlobalTechCoef_in",
+                     "L202.GlobalTechShrwt_in",
+                     "L202.StubTechProd_in",
+                     "L202.Supplysector_an",
+                     "L202.SubsectorAll_an",
+                     "L202.GlobalTechShrwt_an",
+                     "L202.StubTechInterp_an",
+                     "L202.StubTechProd_an",
+                     "L202.StubTechCoef_an",
+                     "L202.StubTechCost_an",
+                     "L2082.StubTechCost_an_adj",
+                     "L202.StubTechCost_For_proc",
+                     "L202.StubTechProd_in_Forest"
+      ) ->
+      an_input_tfp_MA.xml
 
     return_data(MODULE_OUTPUTS)
   } else {

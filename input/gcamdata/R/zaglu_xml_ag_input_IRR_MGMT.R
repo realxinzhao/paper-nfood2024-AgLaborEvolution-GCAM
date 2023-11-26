@@ -16,14 +16,15 @@ module_aglu_ag_input_IRR_MGMT_xml <- function(command, ...) {
     c("L2082.AgCoef_laborcapital_ag_irr_mgmt",
       "L2082.AgCoef_laborcapital_bio_irr_mgmt",
       "L2082.AgCoef_laborcapital_for",
-      "L2082.AgCoef_laborcapital_ag_irr_mgmt",
-      "L2082.AgCoef_laborcapital_bio_irr_mgmt",
-      "L2082.AgCoef_laborcapital_for",
+      "L2082.AgCoef_laborcapital_ag_irr_mgmt_tfp_MA",
+      "L2082.AgCoef_laborcapital_bio_irr_mgmt_tfp_MA",
+      "L2082.AgCoef_laborcapital_for_tfp_MA",
       "L2062.AgCoef_Fert_ag_irr_mgmt",
       "L2062.AgCoef_Fert_bio_irr_mgmt")
 
   MODULE_OUTPUTS <-
-    c(XML = "ag_input_IRR_MGMT.xml")
+    c(XML = "ag_input_IRR_MGMT.xml",
+      XML = "ag_input_IRR_MGMT_tfp_MA.xml")
 
   if(command == driver.DECLARE_INPUTS) {
     return(MODULE_INPUTS)
@@ -51,6 +52,19 @@ module_aglu_ag_input_IRR_MGMT_xml <- function(command, ...) {
                      "L2062.AgCoef_Fert_ag_irr_mgmt",
                      "L2062.AgCoef_Fert_bio_irr_mgmt") ->
       ag_input_IRR_MGMT.xml
+
+    create_xml("ag_input_IRR_MGMT_tfp_MA.xml") %>%
+      add_xml_data(L2062.AgCoef_Fert_ag_irr_mgmt, "AgCoef") %>%
+      add_xml_data(L2082.AgCoef_laborcapital_ag_irr_mgmt_tfp_MA, "AgCoef") %>%
+      add_xml_data(L2062.AgCoef_Fert_bio_irr_mgmt, "AgCoef") %>%
+      add_xml_data(L2082.AgCoef_laborcapital_bio_irr_mgmt_tfp_MA, "AgCoef") %>%
+      add_xml_data(L2082.AgCoef_laborcapital_for_tfp_MA, "AgCoef") %>%
+      add_precursors("L2082.AgCoef_laborcapital_ag_irr_mgmt_tfp_MA",
+                     "L2082.AgCoef_laborcapital_bio_irr_mgmt_tfp_MA",
+                     "L2082.AgCoef_laborcapital_for_tfp_MA",
+                     "L2062.AgCoef_Fert_ag_irr_mgmt",
+                     "L2062.AgCoef_Fert_bio_irr_mgmt") ->
+      ag_input_IRR_MGMT_tfp_MA.xml
 
     return_data(MODULE_OUTPUTS)
   } else {
