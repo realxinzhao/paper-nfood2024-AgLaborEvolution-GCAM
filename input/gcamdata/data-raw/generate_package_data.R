@@ -4,7 +4,8 @@ library(devtools)
 # We could potentially use drake to speed up the process of updating the package
 # data which otherwise requires multiple runs of driver.  However, given drake
 # is optional we default to not use it.
-USE_DRIVER_DRAKE <- FALSE
+USE_DRIVER_DRAKE <- TRUE
+# USE_DRIVER_DRAKE <- FALSE
 
 # Note: the methods below explicitly name XML tags as expected by GCAM and/or
 # the model interface headers thus will need to be maintained to be consistent.
@@ -554,7 +555,9 @@ prebuilt_data_names <- c(
   "L121.BiomassOilRatios_kgGJ_R_C",
 
   # output of module_aglu_LA100.GTAP_downscale_ctry
-  "L100.GTAP_capital_stock"
+  "L100.GTAP_capital_stock",
+  "L100.GTAPCostShare_AgLU_reg_comm",
+  "L100.GTAPCostShare_AgLU_reg"
 )
 
 #' PREBUILT_DATA
