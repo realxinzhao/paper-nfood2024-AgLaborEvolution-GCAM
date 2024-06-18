@@ -25,6 +25,7 @@ module_aglu_L2082.ag_laborcapital_irr_mgmt <- function(command, ...) {
       "L2052.AgCost_For",
       "L202.StubTechCost_an",
       "L100.GTAPCostShare_AgLU_reg_comm",
+      "L100.GTAPCostShare_AgLU_reg",
       FILE = "common/iso_GCAM_regID",
       FILE = "aglu/USDA/Ag_labor_USDA",
       FILE = "aglu/Ag_labor_ILO",
@@ -178,30 +179,6 @@ module_aglu_L2082.ag_laborcapital_irr_mgmt <- function(command, ...) {
 
     GTAP_AgLU_sector <- GCAM_GTAP_Agsector_mapping %>%
       distinct(output = GTAP_sectors)
-
-    # TODO: need to update the pre-built data to include: L100.GTAPCostShare_AgLU_reg
-    GTAPv10_baseview_SF01_VFA %>%
-      # Keep relevant AgLU sectors only
-      right_join(GTAP_AgLU_sector,  by = "output") %>%
-      # aggregate input sectors for simplicity
-      left_join_error_no_match(GTAP_sector_aggregation_mapping %>% select(input = GTAPv10, input1 = GCAM_sector), by = "input") %>%
-      group_by(region, year, sector = output, input = input1) %>%
-      summarize(value = sum(value), .groups = "drop") ->
-      L100.GTAPCostShare_AgLU_MilUSD
-
-    # Aggregate to GCAM regions
-
-    L100.GTAPCostShare_AgLU_MilUSD %>%
-      rename(region_GTAP = region) %>%
-      left_join_error_no_match(
-        GCAM_GTAP_region_mapping %>% select(region_GTAP = GTAPv10_region, region_GCAM = GCAM_region),
-        by = "region_GTAP") %>%
-      left_join_error_no_match(
-        GCAM_region_names %>% select(region_GCAM = region, GCAM_region_ID),
-        by = "region_GCAM") %>%
-      group_by(GCAM_region_ID, year, sector, input) %>%
-      summarize(value = sum(value), .groups = "drop") ->
-      L100.GTAPCostShare_AgLU_reg
 
     # Map to GCAM sectors and Calculate shares
     GCAM_GTAP_Agsector_mapping %>%

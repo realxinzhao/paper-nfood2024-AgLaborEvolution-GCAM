@@ -35,7 +35,8 @@ module_aglu_L100.GTAP_downscale_ctry <- function(command, ...) {
   MODULE_OUTPUTS <-
     c("L100.GTAP_LV_milUSD",
       "L100.GTAP_capital_stock",
-      "L100.GTAPCostShare_AgLU_reg_comm")
+      "L100.GTAPCostShare_AgLU_reg_comm",
+      "L100.GTAPCostShare_AgLU_reg")
 
   if(command == driver.DECLARE_INPUTS) {
     return(MODULE_INPUTS)
@@ -178,6 +179,7 @@ module_aglu_L100.GTAP_downscale_ctry <- function(command, ...) {
 
       # If missing source GTAP data, prebuilt data is read here
       L100.GTAPCostShare_AgLU_reg_comm <- extract_prebuilt_data("L100.GTAPCostShare_AgLU_reg_comm")
+      L100.GTAPCostShare_AgLU_reg <- extract_prebuilt_data("L100.GTAPCostShare_AgLU_reg")
 
     }
 

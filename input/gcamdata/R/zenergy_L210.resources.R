@@ -154,6 +154,9 @@ MODULE_OUTPUTS <- c("L210.Rsrc",
     L120.TechChange_offshore_wind <- get_data(all_data, "L120.TechChange_offshore_wind", strip_attributes = TRUE )
     L102.pcgdp_thous90USD_Scen_R_Y <- get_data(all_data, "L102.pcgdp_thous90USD_Scen_R_Y")
 
+    L2082.region_capitalprice <- get_data(all_data, "L2082.region_capitalprice")
+    L2082.region_laborprice <- get_data(all_data, "L2082.region_laborprice")
+
     # Check for calibrated resource prices for final historical model year.
     # Otherwise, price behavior is undefinded, and so stop process.
     # There should be calibrated prices for all historical model years for
