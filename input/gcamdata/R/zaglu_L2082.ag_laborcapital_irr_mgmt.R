@@ -217,6 +217,27 @@ module_aglu_L2082.ag_laborcapital_irr_mgmt <- function(command, ...) {
     # The fishing industry employed some 15,000 people 2014. It is estimated that 4,000 to 5,000 people were directly employed in the sector and many more indirectly.
     # The ILO fishing employment in Guyana fall in Guyana's government website information.
 
+
+    # Adjustment for GTAP-expenditure based sectoral share :::
+    # First, we calculate labor and capital share across all primary Ag sectors,
+    # and obtain the Forestry share across primary sectors
+    # However, this way, the resulted forestry labor share is higher than literature/observed data
+    # For example, in China and Canada (among top 5 forestry resource countries)
+
+    # For China's forestry employment data, see this paper https://www.emerald.com/insight/content/doi/10.1108/FER-03-2023-0003/full/html
+    # Based on Fig1, the forestry labor share of primary ag is about 0.044364123 in 2019 for China
+    # While the GTAP expenditure based share is 0.080271944
+
+    # For Canada, check the https://cfs.nrcan.gc.ca/statsprofile/employment/CA
+    # Forestry and logging employment from survey of employment and Canadian system of national accounts
+    # suggest the forestry labor share of parimary ag is 0.137869055 and 0.158797511, respectively.
+    # While GTAP based share is 0.260821813.
+
+    # We found that GTAP base share for Forestry that calculated with both primary and secondary sectors
+    # align better with literature and observed data, so we use the following method to calculate
+    # Forestry labor share based on GTAP data.
+    # Note that only 7 regions missing ILO data use the GTAp based Forestry labor share.
+
     ILO_labor_share %>% rename(FISH_ILO = FISH, FOR_ILO = FOR) %>%
       full_join(GTAP_labor_share %>% rename(FISH_GTAP = FISH, FOR_GTAP = FOR),
                 by = "region") %>%
