@@ -175,6 +175,9 @@ module_aglu_L100.GTAP_downscale_ctry <- function(command, ...) {
         L100.GTAPCostShare_AgLU_reg_comm
 
 
+      verify_identical_prebuilt(L100.GTAPCostShare_AgLU_reg_comm)
+      verify_identical_prebuilt(L100.GTAPCostShare_AgLU_reg)
+
     } else {
 
       # If missing source GTAP data, prebuilt data is read here
@@ -246,10 +249,22 @@ module_aglu_L100.GTAP_downscale_ctry <- function(command, ...) {
                      "L100.LDS_ag_prod_t") ->
       L100.GTAP_LV_milUSD
 
-    L100.GTAPCostShare_AgLU_reg_comm %>%
-      add_title("GCAM AgLU sector cost share", overwrite = TRUE) %>%
+    L100.GTAPCostShare_AgLU_reg %>%
+      add_title("GCAM AgLU sector cost") %>%
       add_units("share") %>%
-      add_legacy_name("L100.GTAPCostShare_AgLU_reg_comm") %>%
+      add_legacy_name("L100.GTAPCostShare_AgLU_reg") %>%
+      add_comments("Note that for livestock sectors, primary and secondary are aggregated while labor and capital are distinguished") %>%
+      add_precursors("common/GCAM_region_names",
+                     "socioeconomics/GTAP/GCAM_GTAP_region_mapping",
+                     "socioeconomics/GTAP/GTAP_sector_aggregation_mapping",
+                     "socioeconomics/GTAP/GCAM_GTAP_Agsector_mapping",
+                     "socioeconomics/GTAP/GTAPv10_baseview_SF01_VFA") ->
+      L100.GTAPCostShare_AgLU_reg
+
+    L100.GTAPCostShare_AgLU_reg_comm %>%
+    add_title("GCAM AgLU sector cost share", overwrite = TRUE) %>%
+      add_units("share") %>%
+      add_legacy_name("L100.GTAPCostShare_AgLU_reg_comm", overwrite = TRUE) %>%
       add_comments("Note that for livestock sectors, primary and secondary are aggregated while labor and capital are distinguished") %>%
       add_precursors("common/GCAM_region_names",
                      "socioeconomics/GTAP/GCAM_GTAP_region_mapping",
