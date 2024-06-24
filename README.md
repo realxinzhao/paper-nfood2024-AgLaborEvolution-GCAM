@@ -26,7 +26,7 @@ Addon XMLs used in sensitivity scenarios are provided in the `input/xml_sen` dir
 #### Configuration Files
 Configuration files are already included in the `exe/` directory of the repo. But they are also includedin the compressed file.
 
-#### Scenario Mapping
+#### Scenario Mapping (corrected)
 
 - `config_para_static`: Static
 - `config_para_evo`: Evolving
@@ -37,8 +37,8 @@ Configuration files are already included in the `exe/` directory of the repo. Bu
 - `config_para_gamma_hi`: High Elas.
 - `config_para_gamma_lo`: Low Elas.
 
-- `config_para_eta1`: High productivity
-- `config_para_eta6`: Low productivity
+- `config_para_eta6`: High productivity
+- `config_para_eta1`: Low productivity
 
 #### Repo for processing output and visulaization
 There is a separate repo [`paper-nc2024-LandBasedCDR-DisplayItems`](https://github.com/realxinzhao/paper-nc2024-LandBasedCDR-DisplayItems) for processing GCAM results and generating data and figures used in the paper. 
