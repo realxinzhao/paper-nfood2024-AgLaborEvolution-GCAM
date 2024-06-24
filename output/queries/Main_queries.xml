@@ -4202,6 +4202,94 @@ element input {
                 <comments/>
             </supplyDemandQuery>
         </queryGroup>
+<queryGroup name="labor and capital demand">
+            <queryGroup name="AgLU labor  demands">
+                <supplyDemandQuery title="Labor inputs by region">
+                    <axis1 name="region">region</axis1>
+                    <axis2 name="Year">demand-physical[@vintage]</axis2>
+                    <xPath buildList="true" dataName="input" group="false" sumAll="false">*[@type='sector' (:collapse:)]//
+               *[@type='input' and (@name='Labor_Ag')]/demand-physical/node()</xPath>
+                    <comments/>
+                </supplyDemandQuery>
+                <supplyDemandQuery title="Labor inputs by crop type">
+                    <axis1 name="sector">sector</axis1>
+                    <axis2 name="Year">demand-physical[@vintage]</axis2>
+                    <xPath buildList="true" dataName="input" group="false" sumAll="false">*[@type='sector']//
+               *[@type='input' and (@name='Labor_Ag')]/demand-physical/node()</xPath>
+                    <comments/>
+                </supplyDemandQuery>
+                <supplyDemandQuery title="Labor inputs by ag tech">
+                    <axis1 name="sector">sector</axis1>
+                    <axis2 name="Year">demand-physical[@vintage]</axis2>
+                    <xPath buildList="true" dataName="input" group="false" sumAll="false">*[@type='sector']/
+               *[@type='subsector']/*[@type='technology']/*[@type='input' and (@name='Labor_Ag')]/demand-physical/node()</xPath>
+                    <comments/>
+                </supplyDemandQuery>
+                <supplyDemandQuery title="Labor-crop input-output coefficients">
+                    <axis1 name="sector">sector</axis1>
+                    <axis2 name="Year">IO-coefficient[@vintage]</axis2>
+                    <xPath buildList="true" dataName="input" group="false" sumAll="false">AgSupplySector/*[@type='subsector']/
+               *[@type='technology']/*[@type='input' and (@name='Labor_Ag')]/IO-coefficient/node()</xPath>
+                    <comments/>
+                </supplyDemandQuery>
+				<supplyDemandQuery title="Labor-animal input-output coefficients">
+                    <axis1 name="sector">sector</axis1>
+                    <axis2 name="Year">IO-coefficient[@vintage]</axis2>
+                    <xPath buildList="true" dataName="input" group="false" sumAll="false">supplysector/*[@type='subsector']/
+               *[@type='technology']/*[@type='input' and (@name='Labor_Ag')]/IO-coefficient/node()</xPath>
+                    <comments/>
+                </supplyDemandQuery>
+                <marketQuery title="Labor market prices">
+                    <axis1 name="market">market</axis1>
+                    <axis2 name="Year">market</axis2>
+                    <xPath buildList="true" dataName="price" group="false" sumAll="false">Marketplace/market[true() and contains(@name,'Labor_Ag')]/price/node()</xPath>
+                    <comments/>
+                </marketQuery>
+            </queryGroup>
+            <queryGroup name="AgLU capital demands">
+                <supplyDemandQuery title="Capital inputs by region">
+                    <axis1 name="region">region</axis1>
+                    <axis2 name="Year">demand-physical[@vintage]</axis2>
+                    <xPath buildList="true" dataName="input" group="false" sumAll="false">*[@type='sector' (:collapse:)]//
+               *[@type='input' and (@name='Capital_Ag')]/demand-physical/node()</xPath>
+                    <comments/>
+                </supplyDemandQuery>
+                <supplyDemandQuery title="Capital inputs by sector">
+                    <axis1 name="sector">sector</axis1>
+                    <axis2 name="Year">demand-physical[@vintage]</axis2>
+                    <xPath buildList="true" dataName="input" group="false" sumAll="false">*[@type='sector']//
+               *[@type='input' and (@name='Capital_Ag')]/demand-physical/node()</xPath>
+                    <comments/>
+                </supplyDemandQuery>
+                <supplyDemandQuery title="Capital inputs by ag tech">
+                    <axis1 name="sector">sector</axis1>
+                    <axis2 name="Year">demand-physical[@vintage]</axis2>
+                    <xPath buildList="true" dataName="input" group="false" sumAll="false">*[@type='sector']/
+               *[@type='subsector']/*[@type='technology']/*[@type='input' and (@name='Capital_Ag')]/demand-physical/node()</xPath>
+                    <comments/>
+                </supplyDemandQuery>
+                <supplyDemandQuery title="Capital-crop input-output coefficients">
+                    <axis1 name="sector">sector</axis1>
+                    <axis2 name="Year">IO-coefficient[@vintage]</axis2>
+                    <xPath buildList="true" dataName="input" group="false" sumAll="false">AgSupplySector/*[@type='subsector']/
+               *[@type='technology']/*[@type='input' and (@name='Capital_Ag')]/IO-coefficient/node()</xPath>
+                    <comments/>
+                </supplyDemandQuery>
+				<supplyDemandQuery title="Capital-animal input-output coefficients">
+                    <axis1 name="sector">sector</axis1>
+                    <axis2 name="Year">IO-coefficient[@vintage]</axis2>
+                    <xPath buildList="true" dataName="input" group="false" sumAll="false">supplysector/*[@type='subsector']/
+               *[@type='technology']/*[@type='input' and (@name='Capital_Ag')]/IO-coefficient/node()</xPath>
+                    <comments/>
+                </supplyDemandQuery>
+                <marketQuery title="Capital market prices">
+                    <axis1 name="market">market</axis1>
+                    <axis2 name="Year">market</axis2>
+                    <xPath buildList="true" dataName="price" group="false" sumAll="false">Marketplace/market[true() and contains(@name,'Capital_Ag')]/price/node()</xPath>
+                    <comments/>
+                </marketQuery>
+            </queryGroup>
+        </queryGroup>
         <queryGroup name="ag storage">
             <supplyDemandQuery title="opening stocks (supply from carryover)">
                 <axis1 name="technology">technology[@name]</axis1>
